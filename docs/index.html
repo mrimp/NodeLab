@@ -1,1 +1,2077 @@
 
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>NodeLab v2 • Standalone</title>
+<style>
+  :root{
+    --bg:#0b0f14;
+    --panel:#0f1620;
+    --panel2:#0d131c;
+    --text:#e6edf3;
+    --muted:#9fb0c0;
+    --muted2:#7f91a3;
+    --line:rgba(255,255,255,.08);
+    --line2:rgba(255,255,255,.12);
+    --good:#32d583;
+    --warn:#fdb022;
+    --bad:#ff6b6b;
+    --accent:#7c9cff;
+    --accent2:#9dffda;
+    --shadow: 0 10px 30px rgba(0,0,0,.35);
+    --radius:18px;
+    --radius2:14px;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Apple Color Emoji","Segoe UI Emoji";
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;
+    font-family:var(--sans);
+    color:var(--text);
+    background:
+      radial-gradient(1200px 700px at 20% -10%, rgba(124,156,255,.20), transparent 55%),
+      radial-gradient(1000px 600px at 95% 10%, rgba(157,255,218,.12), transparent 55%),
+      radial-gradient(900px 600px at 35% 100%, rgba(253,176,34,.08), transparent 55%),
+      var(--bg);
+  }
+  a{color:var(--accent)}
+  .wrap{max-width:1020px;margin:0 auto;padding:26px 18px 60px}
+  header{
+    display:flex;align-items:flex-end;justify-content:space-between;gap:16px;
+    padding:18px 18px 14px;border:1px solid var(--line);border-radius:22px;
+    background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
+    box-shadow: var(--shadow);
+  }
+  .brand{display:flex;flex-direction:column;gap:6px}
+  .brand h1{margin:0;font-size:20px;letter-spacing:.2px}
+  .brand .sub{color:var(--muted);font-size:13px;line-height:1.35}
+  .pillrow{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end}
+    .headerTarget{
+      display:flex;
+      align-items:center;
+      justify-content:flex-end;
+      padding-left:10px;
+    }
+    .targetIcon{
+      width:64px;
+      height:64px;
+      opacity:.42;
+      border-radius:999px;
+      object-fit:cover;
+      filter: drop-shadow(0 0 10px rgba(122,162,255,.28)) blur(.1px);
+    }
+    @media (max-width: 720px){
+      .targetIcon{width:54px;height:54px}
+    }
+  .pill{
+    font-size:10px;color:var(--muted);
+    border:1px solid var(--line);
+    padding:4px 9px;border-radius:999px;background:rgba(255,255,255,.03)
+  }
+  .grid{display:flex;flex-direction:column;gap:14px;margin-top:16px}
+  .card{
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+    box-shadow: var(--shadow);
+    overflow:hidden;
+  }
+  .card .hd{
+    padding:14px 16px;
+    display:flex;align-items:center;justify-content:space-between;gap:14px;
+    border-bottom:1px solid var(--line);
+    background:rgba(0,0,0,.12);
+  }
+  .card .hd .title{display:flex;align-items:center;gap:10px}
+  .card .hd h2{margin:0;font-size:14px;letter-spacing:.2px}
+  .card .bd{padding:14px 16px}
+  .muted{color:var(--muted)}
+  .small{font-size:12px}
+  .mono{font-family:var(--mono)}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .row > *{flex:0 0 auto}
+  .row .grow{flex:1 1 auto}
+  .btn{
+    display:inline-flex;align-items:center;gap:8px;
+    padding:10px 12px;border-radius:14px;
+    border:1px solid var(--line2);
+    background:rgba(255,255,255,.03);
+    color:var(--text);cursor:pointer;
+    user-select:none;
+    transition:transform .06s ease, border-color .2s ease, background .2s ease;
+  }
+  .btn:hover{border-color:rgba(124,156,255,.35);background:rgba(124,156,255,.08)}
+  .btn:active{transform:translateY(1px)}
+  .btn.primary{border-color:rgba(124,156,255,.6);background:rgba(124,156,255,.14)}
+  .btn.primary:hover{background:rgba(124,156,255,.20)}
+  .btn.danger:hover{border-color:rgba(255,107,107,.5);background:rgba(255,107,107,.12)}
+  .btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+  .input{
+    width:100%;
+    padding:10px 12px;border-radius:14px;
+    border:1px solid var(--line2);
+    background:rgba(0,0,0,.22);
+    color:var(--text);
+    outline:none;
+  }
+  .input:focus{border-color:rgba(124,156,255,.55)}
+  .split{display:grid;grid-template-columns: 1fr 1fr;gap:10px}
+  @media (max-width:860px){ .split{grid-template-columns: 1fr} header{flex-direction:column;align-items:flex-start} .pillrow{justify-content:flex-start} }
+  .note{padding:10px 12px;border:1px dashed rgba(255,255,255,.16);border-radius:14px;color:var(--muted);background:rgba(0,0,0,.12)}
+  .kpi{display:flex;gap:14px;flex-wrap:wrap}
+  .kpi .box{padding:10px 12px;border:1px solid var(--line);border-radius:16px;background:rgba(0,0,0,.12)}
+  .kpi .box .v{font-size:16px;font-weight:650}
+  .kpi .box .k{font-size:12px;color:var(--muted)}
+  .toggle{
+    display:inline-flex;border:1px solid var(--line2);border-radius:999px;overflow:hidden;background:rgba(0,0,0,.16)
+  }
+  .toggle button{
+    border:0;background:transparent;color:var(--muted);padding:8px 10px;cursor:pointer;font-size:12px
+  }
+  .toggle button.on{color:var(--text);background:rgba(124,156,255,.18)}
+  .hr{height:1px;background:var(--line);margin:12px 0}
+  .tablewrap{overflow:auto;border:1px solid var(--line);border-radius:16px}
+  table{width:100%;border-collapse:separate;border-spacing:0;min-width:860px}
+  thead th{
+    position:sticky;top:0;z-index:2;
+    text-align:left;font-size:12px;color:var(--muted);
+    background:rgba(15,22,32,.92);
+    backdrop-filter: blur(8px);
+    border-bottom:1px solid var(--line);
+    padding:10px 10px;
+    white-space:nowrap;
+  }
+  tbody td{padding:10px 10px;border-bottom:1px solid rgba(255,255,255,.06);vertical-align:middle}
+  tbody tr:hover{background:rgba(124,156,255,.06)}
+  .rank{font-variant-numeric:tabular-nums;font-family:var(--mono)}
+  .chip{
+    display:inline-flex;align-items:center;gap:6px;
+    padding:5px 8px;border-radius:999px;font-size:12px;border:1px solid var(--line2);
+    background:rgba(0,0,0,.14)
+  }
+  .chip.good{border-color:rgba(50,213,131,.35);background:rgba(50,213,131,.10);color:rgba(200,255,226,.98)}
+  .chip.warn{border-color:rgba(253,176,34,.40);background:rgba(253,176,34,.10);color:#ffe8c2}
+  .chip.low{border-color:rgba(159,176,192,.25);background:rgba(159,176,192,.08);color:#d6e0ea}
+  .chips{display:flex;gap:6px;flex-wrap:wrap}
+  .icons{display:flex;gap:8px;align-items:center}
+  .ico{
+    width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;
+    border-radius:10px;border:1px solid rgba(255,255,255,.10);background:rgba(0,0,0,.18);
+    cursor:default;
+  }
+  .ico svg{width:14px;height:14px;opacity:.92}
+  .ico.warn{border-color:rgba(253,176,34,.35);background:rgba(253,176,34,.10)}
+  .ico.good{border-color:rgba(50,213,131,.30);background:rgba(50,213,131,.10)}
+  .ico.low{border-color:rgba(159,176,192,.20);background:rgba(159,176,192,.08)}
+  .toolt{position:relative}
+  .toolt:hover::after{
+    content:attr(data-tip);
+    position:absolute;left:50%;transform:translateX(-50%);
+    bottom:calc(100% + 10px);
+    background:rgba(8,11,16,.96);
+    color:var(--text);
+    border:1px solid rgba(255,255,255,.12);
+    padding:8px 10px;border-radius:12px;
+    font-size:12px;line-height:1.25;
+    width:max-content;max-width:280px;
+    box-shadow:0 12px 30px rgba(0,0,0,.45);
+    z-index:50;
+    white-space:normal;
+  }
+  .toolt:hover::before{
+    content:"";
+    position:absolute;left:50%;transform:translateX(-50%);
+    bottom:100%;
+    border:8px solid transparent;
+    border-top-color:rgba(255,255,255,.12);
+    filter: drop-shadow(0 8px 12px rgba(0,0,0,.35));
+  }
+  .badge{
+    display:inline-flex;align-items:center;gap:8px;
+    padding:7px 10px;border-radius:14px;border:1px solid var(--line2);
+    background:rgba(0,0,0,.14);color:var(--muted);
+    font-size:12px;
+  }
+  .warntext{color:#ffd7a0}
+  .oktext{color:#bfffe0}
+  .panelhint{display:flex;gap:8px;flex-wrap:wrap}
+  .panelhint .hint{font-size:12px;color:var(--muted);border:1px solid var(--line);padding:7px 10px;border-radius:999px;background:rgba(0,0,0,.10)}
+  details{border:1px solid rgba(255,255,255,.08);border-radius:16px;background:rgba(0,0,0,.10);padding:10px 12px}
+  details summary{cursor:pointer;color:var(--text);font-size:13px}
+  details .inner{padding:10px 4px 4px;color:var(--muted)}
+  .matrixwrap{overflow:auto;border:1px solid var(--line);border-radius:16px}
+  .matrix{min-width:860px;width:100%;border-collapse:separate;border-spacing:0}
+  .matrix th,.matrix td{padding:10px 10px;border-bottom:1px solid rgba(255,255,255,.06);vertical-align:middle}
+  .matrix thead th{position:sticky;top:0;background:rgba(15,22,32,.92);backdrop-filter: blur(8px);z-index:2;color:var(--muted);font-size:12px;border-bottom:1px solid var(--line)}
+  .matrix tbody tr:hover{background:rgba(124,156,255,.05)}
+  .cb{width:18px;height:18px;accent-color: var(--accent);cursor:pointer}
+  .right{display:flex;justify-content:flex-end}
+  .toast{
+    position:fixed;left:50%;bottom:18px;transform:translateX(-50%);
+    padding:10px 12px;border-radius:14px;border:1px solid rgba(255,255,255,.12);
+    background:rgba(8,11,16,.92);
+    box-shadow:0 12px 30px rgba(0,0,0,.45);
+    color:var(--text);font-size:12px;
+    display:none;z-index:99;max-width:92vw
+  }
+  .toast.show{display:block;animation:pop .16s ease}
+  @keyframes pop{from{transform:translateX(-50%) translateY(8px);opacity:.0} to{transform:translateX(-50%) translateY(0);opacity:1}}
+  footer{margin-top:18px;color:var(--muted2);font-size:12px;text-align:center}
+  .kbd{font-family:var(--mono);font-size:11px;padding:2px 6px;border-radius:8px;border:1px solid rgba(255,255,255,.16);background:rgba(0,0,0,.18);color:var(--text)}
+
+/* Pairing matrix legend row (labels sit aligned with checkbox columns) */
+.matrix tr.legendrow td{ background:transparent; border-bottom:1px solid rgba(255,255,255,.06); padding:10px 10px 6px 10px; }
+.matrix td.legendcell{ text-align:center; }
+.legendtitle{ font-weight:700; letter-spacing:.2px; }
+.legendsub{ color:rgba(255,255,255,.72); font-size:12px; margin-top:2px; }
+
+
+/* Pairing option label (checkbox + Chrono A/B/C + shots in the same cell) */
+.pairOpt{ display:inline-flex; align-items:center; gap:10px; padding:8px 10px; border-radius:14px; border:1px solid rgba(255,255,255,.10); background:rgba(255,255,255,.03); }
+.pairOpt:hover{ border-color:rgba(255,255,255,.18); background:rgba(255,255,255,.05); }
+.pairOpt input.cb{ width:20px; height:20px; }
+.pairTxt{ display:flex; flex-direction:column; line-height:1.05; text-align:left; }
+.pairTop{ font-weight:700; }
+.pairSub{ color:rgba(255,255,255,.72); font-size:12px; margin-top:3px; }
+
+
+/* Tighten Step 3 pairing rows */
+.matrix tbody tr td{ padding-top:12px; padding-bottom:12px; }
+.matrix td{ padding-left:14px; padding-right:14px; }
+.matrix td .muted.small{ margin-top:6px; }
+.pairOpt{ padding:6px 10px; border-radius:14px; gap:10px; }
+.pairOpt input.cb{ width:18px; height:18px; }
+.pairTop{ font-size:13px; }
+.pairSub{ font-size:11px; margin-top:2px; }
+.chip{ padding:6px 10px; }
+
+
+/* --- UI condense: Step 3 pairing matrix (tighten row height) --- */
+#step3 .pairingMatrixRow,
+#step3 .pair-row,
+#step3 .pairRow,
+#step3 .matrix-row,
+#step3 .row,
+#pairingMatrix .pairingMatrixRow,
+#pairingMatrix .pair-row,
+#pairingMatrix .pairRow,
+#pairingMatrix .matrix-row,
+#pairingMatrix .row{
+  padding-top: 10px !important;
+  padding-bottom: 10px !important;
+}
+
+/* Tighten vertical gaps between matrix rows */
+#step3 .pairingMatrix,
+#step3 .pair-matrix,
+#step3 .matrix,
+#pairingMatrix,
+#pairingMatrix .pairingMatrix,
+#pairingMatrix .pair-matrix,
+#pairingMatrix .matrix{
+  row-gap: 10px !important;
+}
+
+/* Tighten the left target cell spacing */
+#step3 .targetCell,
+#step3 .target-cell,
+#step3 .targetInfo,
+#step3 .target-info,
+#pairingMatrix .targetCell,
+#pairingMatrix .target-cell,
+#pairingMatrix .targetInfo,
+#pairingMatrix .target-info{
+  padding-top: 6px !important;
+  padding-bottom: 6px !important;
+}
+
+/* Tighten chrono option "pills" in the right column */
+#step3 .chronoOption,
+#step3 .chrono-option,
+#step3 .chronoPill,
+#step3 .chrono-pill,
+#step3 .choicePill,
+#pairingMatrix .chronoOption,
+#pairingMatrix .chrono-option,
+#pairingMatrix .chronoPill,
+#pairingMatrix .chrono-pill,
+#pairingMatrix .choicePill{
+  padding: 10px 14px !important;
+  border-radius: 22px !important;
+}
+
+/* Reduce checkbox box size a hair */
+#step3 input[type="checkbox"],
+#pairingMatrix input[type="checkbox"]{
+  transform: scale(0.92);
+}
+
+/* If the matrix uses big separators, soften them */
+#step3 .rowDivider,
+#step3 .dividerRow,
+#pairingMatrix .rowDivider,
+#pairingMatrix .dividerRow{
+  margin-top: 8px !important;
+  margin-bottom: 8px !important;
+}
+
+
+/* --- Step 3 dropdown pairing (replaces checkbox matrix) --- */
+.matrix.matrix-compact{ min-width: 640px !important; }
+.pairSelWrap{ display:flex; flex-direction:column; align-items:flex-end; gap:6px; }
+.pairSelect{
+  appearance:none;
+  -webkit-appearance:none;
+  -moz-appearance:none;
+  width: 240px;
+  max-width: 100%;
+  padding: 10px 38px 10px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.03);
+  color: rgba(235,242,255,.92);
+  font-weight: 750;
+  letter-spacing: .2px;
+  cursor: pointer;
+  outline: none;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.03);
+}
+.pairSelect:hover{ border-color: rgba(255,255,255,.18); background: rgba(255,255,255,.05); }
+.pairSelect:focus{ border-color: rgba(124,156,255,.45); box-shadow: 0 0 0 3px rgba(124,156,255,.18); }
+.pairSelectArrow{
+  position: relative;
+  display:inline-block;
+}
+.pairSelectArrow:after{
+  content:"▾";
+  position:absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-52%);
+  font-size: 12px;
+  color: rgba(255,255,255,.70);
+  pointer-events:none;
+}
+.pairSelect option{ color:#0b1222; }
+.pairNote{ color: rgba(255,255,255,.72); font-size: 12px; }
+.pairNote.warn{ color: rgba(251,191,36,.92); }
+
+
+/* --- Step 3: Row highlight on hover (purely visual) --- */
+#step3 table.matrix tbody tr{
+  transition: background-color .12s ease, box-shadow .12s ease, transform .12s ease;
+}
+#step3 table.matrix tbody tr:hover{
+  background: rgba(255,255,255,.03);
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.10),
+    0 14px 36px rgba(0,0,0,.35);
+  transform: translateY(-1px);
+}
+#step3 table.matrix tbody tr:hover td{
+  background: transparent;
+}
+#step3 table.matrix tbody tr:hover .pairSelect{
+  border-color: rgba(255,255,255,.20);
+  background: rgba(255,255,255,.05);
+}
+
+
+/* --- Step 3: small button for Reset pairing --- */
+.btn.sm{
+  padding: 8px 10px;
+  font-size: 12px;
+  border-radius: 999px;
+  opacity: .92;
+}
+.btn.sm:hover{ opacity: 1; }
+
+
+/* --- Release polish: consistent microcopy + disabled states --- */
+.muted.small{ line-height: 1.25; }
+.step-subhint, .subhint{ line-height: 1.25; }
+
+button:disabled, .btn[disabled]{
+  opacity: .55 !important;
+  cursor: not-allowed !important;
+  filter: saturate(.9);
+  transform: none !important;
+}
+button:disabled:hover, .btn[disabled]:hover{
+  border-color: rgba(255,255,255,.10) !important;
+  background: inherit;
+}
+
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <h1>NodeLab v2 <span class="muted small">• standalone</span></h1>
+      <div class="sub">ShotMarker-first session analysis for 1000-yard reality. Vertical is king; velocity is context. NodeLab explains — you decide.</div>
+    </div>
+    <div class="headerTarget" aria-hidden="true" title="ShotMarker target">
+      <img class="targetIcon" alt="" src="data:image/jpeg;base64,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" />
+    </div>
+  </header>
+
+  <div class="grid">
+
+    <section class="card" id="cardSession">
+      <div class="hd">
+        <div class="title">
+          <h2>Session</h2>
+          <span class="badge toolt" id="sessState" data-tip="Builds once files are loaded. Refresh UI just re-renders; it won't touch data.">Empty</span>
+        </div>
+        <div class="row">
+          <div class="toggle toolt" data-tip="Default is MOA @ 1000y. Toggle to mm @ 1000y for a more concrete feel.">
+            <button id="unitMoa" class="on">MOA @ 1000y</button>
+            <button id="unitMm">mm @ 1000y</button>
+          </div>
+          <button class="btn toolt" id="btnRefresh" data-tip="Re-render the UI from current data. No data loss.">🔄 Refresh UI</button>
+          <button class="btn danger toolt" id="btnReset" data-tip="Nukes the session — clears loaded files, pairings, and results.">💣 Reset session</button>
+          <button class="btn toolt" id="btnExport" data-tip="Exports the full session (raw data + pairings + UI state) to a dated .json.">💾 Export .json</button>
+          <label class="btn toolt" data-tip="Import a previously exported NodeLab session .json.">
+            📥 Import .json <input id="importJson" type="file" accept=".json,application/json" hidden>
+          </label>
+        </div>
+      </div>
+      <div class="bd">
+        <div class="split">
+          <div>
+            <label class="small muted">Session name</label>
+            <input class="input" id="sessionName" placeholder="e.g., Dec 21 2025 — 1000y Practice"/>
+            <div style="height:8px"></div>
+            <div class="note">
+              <div><b>What NodeLab does:</b> ranks targets by <b>vertical dispersion</b> (scored shots only), surfaces confidence, and flags patterns that matter at 1000 — without telling you what to do.</div>
+              <div style="margin-top:8px" class="panelhint">
+                <div class="hint">Vertical-first ranking</div>
+                <div class="hint">Velocity is context</div>
+                <div class="hint">Shooter judgment preserved</div>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div class="kpi" id="kpis">
+              <div class="box"><div class="v mono" id="kpiTargets">0</div><div class="k">Targets</div></div>
+              <div class="box"><div class="v mono" id="kpiShots">0</div><div class="k">Scored shots</div></div>
+              <div class="box"><div class="v mono" id="kpiPaired">0/0</div><div class="k">Paired</div></div>
+            </div>
+            <div class="hr"></div>
+            <details>
+              <summary><span class="muted">Scoring rule:</span> sighters are marked but not used</summary>
+              <div class="inner">
+                If a shot's tag includes <span class="kbd">sighter</span>, NodeLab keeps it visible in drilldown but excludes it from dispersion, confidence, and ranking.
+              </div>
+            </details>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card" id="cardStep1">
+      <div class="hd">
+        <div class="title">
+          <h2>Step 1 — Load ShotMarker target files</h2>
+          <span class="badge" id="smCountBadge">0 loaded</span>
+        </div>
+        <div class="row">
+          <label class="btn toolt" data-tip="Load one or more ShotMarker exported target logs (CSV/TSV).">
+            ➕ Add ShotMarker file(s) <input id="smFiles" type="file" accept=".csv,.tsv,text/csv,text/tab-separated-values" multiple hidden>
+          </label>
+        </div>
+      </div>
+      <div class="bd">
+        <div id="smList" class="muted small">No ShotMarker files yet.</div>
+      </div>
+    </section>
+
+    <section class="card" id="cardStep2">
+      <div class="hd">
+        <div class="title">
+          <h2>Step 2 — Load chronograph files</h2>
+          <span class="badge" id="chCountBadge">0 loaded</span>
+        </div>
+        <div class="row">
+          <label class="btn toolt" data-tip="Load chronograph files (CSV / XLS / XLSX). NodeLab extracts velocity and (if available) timestamps.">
+            ➕ Add chrono file(s) <input id="chFiles" type="file" accept=".csv,.tsv,.xls,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv,text/tab-separated-values" multiple hidden>
+          </label>
+        </div>
+      </div>
+      <div class="bd">
+        <div id="chList" class="muted small">No chrono files yet.</div>
+      </div>
+    </section>
+
+    <section class="card" id="cardStep3">
+      <div class="hd">
+        <div class="title">
+          <h2>Step 3 — Pair targets ↔ chrono (checkbox matrix)</h2>
+          <span class="badge" id="pairBadge">0/0 paired</span>
+<button class="btn sm" id="btnResetPairing" title="Clear all Step 3 pairings (does not reset files)">Reset pairing</button>
+        </div>
+        <div class="step-subhint" style="margin-top:6px;font-size:12px;color:rgba(255,255,255,.55);line-height:1.25;">Each target must be paired to exactly one chrono string.</div>
+        <div class="row">
+          <span class="muted small">Tip:</span>
+          <span class="muted small grow">Shot count mismatches show as amber warnings — you can still run.</span>
+        </div>
+      </div>
+      <div class="bd">
+        <div id="pairArea" class="muted small">Load ShotMarker and chrono files to build the pairing matrix.</div>
+      </div>
+    </section>
+
+    <section class="card" id="cardStep4">
+      <div class="hd">
+        <div class="title">
+          <h2>Step 4 — Run analysis</h2>
+          <span class="badge" id="runBadge">Not ready</span>
+        </div>
+        <div class="row">
+          <button class="btn primary" id="btnRun" disabled>▶ Run Analysis</button>
+          <span class="muted small" id="runHint">Load files and complete pairings.</span>
+        </div>
+      </div>
+      <div class="bd">
+        <div id="resultsArea" class="muted small">No results yet.</div>
+      </div>
+    </section>
+
+    <footer>
+      NodeLab v2 • Spec v1.0 • Local-only • Shooter-facing analysis — explains, never dictates.
+    </footer>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+
+const DEBUG = false;
+const log = (...a)=>{ if(DEBUG) log(...a); };
+const warn = (...a)=>{ if(DEBUG) warn(...a); };
+
+/* =========================================================
+   NodeLab v2 — Standalone (Spec v1.0)
+   - No external dependencies
+   - CSV/TSV parsing
+   - Minimal .xls/.xlsx support (BIFF8 + OOXML subset)
+   - Vertical-first ranking, sighters excluded
+   ========================================================= */
+
+const MOA_MM_AT_1000Y = 265.94; // 10.47in * 25.4mm
+const state = {
+  version: "NodeLab v2 • Spec v1.0",
+  units: "moa", // moa|mm
+  sessionName: "",
+  shotmarkerFiles: [], // {id,name,rawText,targets:[...]}
+  chronoFiles: [], // {id,name,ext,raw,shots:[{v,t,temp?}], stats:{}}
+  targets: [], // flattened targets [{id,name,meta,shots:[...], scored:[...], shotCount,...}]
+  pairings: {}, // targetId -> chronoId
+  results: null
+};
+
+const els = {
+  sessState: document.getElementById("sessState"),
+  sessionName: document.getElementById("sessionName"),
+  unitMoa: document.getElementById("unitMoa"),
+  unitMm: document.getElementById("unitMm"),
+  btnRefresh: document.getElementById("btnRefresh"),
+  btnReset: document.getElementById("btnReset"),
+  btnExport: document.getElementById("btnExport"),
+  importJson: document.getElementById("importJson"),
+  kpiTargets: document.getElementById("kpiTargets"),
+  kpiShots: document.getElementById("kpiShots"),
+  kpiPaired: document.getElementById("kpiPaired"),
+  smFiles: document.getElementById("smFiles"),
+  chFiles: document.getElementById("chFiles"),
+  smList: document.getElementById("smList"),
+  chList: document.getElementById("chList"),
+  smCountBadge: document.getElementById("smCountBadge"),
+  chCountBadge: document.getElementById("chCountBadge"),
+  pairArea: document.getElementById("pairArea"),
+  pairBadge: document.getElementById("pairBadge"),
+  btnRun: document.getElementById("btnRun"),
+  runBadge: document.getElementById("runBadge"),
+  runHint: document.getElementById("runHint"),
+  resultsArea: document.getElementById("resultsArea"),
+  toast: document.getElementById("toast"),
+};
+
+function toast(msg){
+  els.toast.textContent = msg;
+  els.toast.classList.add("show");
+  clearTimeout(toast._t);
+  toast._t = setTimeout(()=>els.toast.classList.remove("show"), 2200);
+}
+
+function uid(prefix="id"){
+  return prefix + "_" + Math.random().toString(16).slice(2) + "_" + Date.now().toString(16);
+}
+
+function fmt(n, d=2){
+  if(n==null || !isFinite(n)) return "—";
+  return Number(n).toFixed(d);
+}
+
+function clamp(x,a,b){ return Math.max(a, Math.min(b,x)); }
+
+function mean(arr){
+  if(!arr || !arr.length) return null;
+  let s=0,c=0;
+  for(const v of arr){ if(isFinite(v)){ s+=v; c++; } }
+  return c? s/c : null;
+}
+function sd(arr){
+  const m = mean(arr);
+  if(m==null) return null;
+  let s=0,c=0;
+  for(const v of arr){ if(isFinite(v)){ s += (v-m)*(v-m); c++; } }
+  return c>1 ? Math.sqrt(s/(c-1)) : 0;
+}
+function es(arr){
+  const a = arr.filter(v=>isFinite(v));
+  if(!a.length) return null;
+  return Math.max(...a) - Math.min(...a);
+}
+function corr(a,b){
+  const n = Math.min(a.length,b.length);
+  let xs=[], ys=[];
+  for(let i=0;i<n;i++){
+    const x=a[i], y=b[i];
+    if(isFinite(x) && isFinite(y)){ xs.push(x); ys.push(y); }
+  }
+  if(xs.length<5) return null;
+  const mx=mean(xs), my=mean(ys);
+  let num=0, dx=0, dy=0;
+  for(let i=0;i<xs.length;i++){
+    const vx=xs[i]-mx, vy=ys[i]-my;
+    num += vx*vy; dx += vx*vx; dy += vy*vy;
+  }
+  if(dx<=0 || dy<=0) return null;
+  return num/Math.sqrt(dx*dy);
+}
+
+// Basic CSV split respecting quotes
+function splitCSV(line, delim=","){
+  const out=[];
+  let cur="", inQ=false;
+  for(let i=0;i<line.length;i++){
+    const ch=line[i];
+    if(ch === '"'){
+      if(inQ && line[i+1] === '"'){ cur+='"'; i++; }
+      else inQ = !inQ;
+    }else if(ch === delim && !inQ){
+      out.push(cur); cur="";
+    }else{
+      cur += ch;
+    }
+  }
+  out.push(cur);
+  return out;
+}
+
+function detectDelim(line){
+  const commas = (line.match(/,/g)||[]).length;
+  const tabs = (line.match(/\t/g)||[]).length;
+  return tabs>commas ? "\t" : ",";
+}
+
+/* =========================
+   ShotMarker parsing
+   ========================= */
+function parseShotMarkerText(text, filename){
+  const lines = text.replace(/\r\n/g,"\n").replace(/\r/g,"\n").split("\n");
+  let currentMeta = null;
+  let header = null;
+  let delim = ",";
+  let targets = [];
+  let rows = [];
+  function flush(){
+    if(!currentMeta || !header || rows.length===0) { rows=[]; return; }
+    const tId = uid("tgt");
+    const parsedShots = rows.map(r=>{
+      const o = {};
+      for(let i=0;i<header.length;i++) o[header[i]] = (r[i] ?? "");
+      // normalize
+      const tags = (o["tags"] || o["tag"] || "").toString().toLowerCase();
+      const x = parseFloat((o["x mm"] ?? o["x_mm"] ?? o["x"] ?? "").toString().replace(",","."));
+      const y = parseFloat((o["y mm"] ?? o["y_mm"] ?? o["y"] ?? "").toString().replace(",","."));
+      const v = parseFloat((o["v fps"] ?? o["v_fps"] ?? o["v"] ?? o["speed (fps)"] ?? "").toString().replace(",","."));
+      const score = parseFloat((o["score"] ?? "").toString().replace(",","."));
+      const tempC = parseFloat((o["temp c"] ?? o["temp_c"] ?? o["temp"] ?? "").toString().replace(",","."));
+      const time = (o["time"] ?? "").toString().trim();
+      return {time, tags, x_mm: x, y_mm: y, v_fps: v, score, tempC, raw:o};
+    });
+    const scored = parsedShots.filter(s=> !(s.tags||"").includes("sighter") );
+    const name = currentMeta?.name || guessTargetNameFromMeta(currentMeta?.rawLine || filename) || filename;
+    targets.push({
+      id: tId,
+      name,
+      meta: currentMeta,
+      shots: parsedShots,
+      scoredShots: scored
+    });
+    rows=[];
+  }
+
+  for(let i=0;i<lines.length;i++){
+    const line = lines[i].trim();
+    if(!line) continue;
+
+    // detect per-target metadata lines
+    const looksLikeMeta =
+      !line.toLowerCase().startsWith("time") &&
+      !line.toLowerCase().startsWith(",time") &&
+      !line.toLowerCase().startsWith("#") &&
+      (/\d+\s*x\s*\d+/i.test(line) || /nra/i.test(line) || /match/i.test(line) || /practice/i.test(line));
+
+    if(looksLikeMeta && !line.toLowerCase().startsWith("shotmarker")){
+      // if already in a block, flush previous
+      flush();
+      currentMeta = { rawLine: line };
+      header = null;
+      continue;
+    }
+
+    // header line
+    if(line.toLowerCase().startsWith("time") || line.toLowerCase().startsWith(",time")){
+      delim = detectDelim(line);
+      const h = splitCSV(line.replace(/^,/, ""), delim).map(s=>s.trim().toLowerCase());
+      header = h;
+      continue;
+    }
+
+    if(header){
+      delim = detectDelim(line);
+      const parts = splitCSV(line, delim);
+      // common: leading empty col
+      if(parts.length === header.length+1 && parts[0]==="") parts.shift();
+      if(parts.length >= header.length){
+        const row = parts.slice(0, header.length);
+
+        // Strict validation: ignore empty delimiter lines and non-shot lines.
+        // Require a plausible time field and a numeric shot id. If x/y exist, require numeric too.
+        const h = header.map(x=>String(x||"").trim().toLowerCase());
+        const idxTime = h.indexOf("time");
+        const idxId   = h.indexOf("id");
+        const idxXmm  = h.indexOf("x mm");
+        const idxYmm  = h.indexOf("y mm");
+        const timeVal = idxTime>=0 ? String(row[idxTime]||"").trim() : "";
+        const idVal   = idxId>=0 ? String(row[idxId]||"").trim() : "";
+
+        const timeOk = idxTime<0 ? true : (/^\d{1,2}:\d{2}(\.\d+)?$/.test(timeVal));
+        const idNum = parseInt(idVal,10);
+        const idOk = idxId<0 ? true : (Number.isFinite(idNum) && idNum>0);
+
+        let xyOk = true;
+        if(idxXmm>=0){
+          const xv = parseFloat(String(row[idxXmm]||"").trim());
+          xyOk = xyOk && Number.isFinite(xv);
+        }
+        if(idxYmm>=0){
+          const yv = parseFloat(String(row[idxYmm]||"").trim());
+          xyOk = xyOk && Number.isFinite(yv);
+        }
+
+        // Blank separator rows in ShotMarker exports are commas only -> fail time/id/xy checks
+        if(timeOk && idOk && xyOk){
+          rows.push(row);
+        }
+      }
+    } else {
+      // file-level meta (first couple lines)
+      if(!currentMeta && (line.toLowerCase().includes("shotmarker") || line.toLowerCase().includes("exported"))){
+        // ignore
+      } else if(!currentMeta && line.includes(",")){
+        // sometimes meta is comma-separated line; treat as meta start
+        currentMeta = { rawLine: line };
+      }
+    }
+  }
+  flush();
+
+  // If no meta blocks were detected, treat whole file as one target if we have a header/rows somewhere
+  if(targets.length===0){
+    // brute force: locate header + data in entire file
+    let hi = lines.findIndex(l=>l.trim().toLowerCase().startsWith("time") || l.trim().toLowerCase().startsWith(",time"));
+    if(hi>=0){
+      delim = detectDelim(lines[hi]);
+      header = splitCSV(lines[hi].trim().replace(/^,/, ""), delim).map(s=>s.trim().toLowerCase());
+      rows = [];
+      for(let j=hi+1;j<lines.length;j++){
+        const ln=lines[j].trim(); if(!ln) continue;
+        const parts=splitCSV(ln, delim);
+        if(parts.length === header.length+1 && parts[0]==="") parts.shift();
+        if(parts.length>=header.length) rows.push(parts.slice(0,header.length));
+      }
+      currentMeta = { rawLine: filename };
+      flush();
+    }
+  }
+  return targets;
+}
+
+function guessTargetNameFromMeta(rawLine){
+  if(!rawLine) return null;
+  // heuristics: grab date + key tokens like "R1/R2/R3" or "#id"
+  const line = rawLine.replace(/\s+/g," ").trim();
+  // pick first ~5 tokens until we hit dimensions like "1115 x 1115"
+  const dimsIdx = line.search(/\d+\s*x\s*\d+/i);
+  const cut = dimsIdx>0 ? line.slice(0,dimsIdx).trim() : line;
+  // if comma-separated, take first 3 fields
+  if(cut.includes(",")){
+    const fields = cut.split(",").map(s=>s.trim()).filter(Boolean);
+    return fields.slice(0,4).join(" — ").slice(0,80);
+  }
+  return cut.slice(0,90);
+}
+
+/* =========================
+   Chronograph parsing
+   - CSV/TSV (simple heuristics)
+   - XLS/XLSX minimal support
+   ========================= */
+
+async function readFileAsText(file){
+  return new Promise((res,rej)=>{
+    const r = new FileReader();
+    r.onload = ()=>res(r.result);
+    r.onerror = rej;
+    r.readAsText(file);
+  });
+}
+async function readFileAsArrayBuffer(file){
+  return new Promise((res,rej)=>{
+    const r = new FileReader();
+    r.onload = ()=>res(r.result);
+    r.onerror = rej;
+    r.readAsArrayBuffer(file);
+  });
+}
+
+function parseChronoCSV(text, filename){
+  const lines = text.replace(/\r\n/g,"\n").replace(/\r/g,"\n").split("\n").filter(l=>l.trim().length);
+  // Find a header row (usually contains "Speed (FPS)" / "Velocity")
+  let headerLineIdx = -1;
+  for(let i=0;i<Math.min(lines.length,30);i++){
+    const l = lines[i].toLowerCase();
+    if(l.includes("speed") && l.includes("fps")){ headerLineIdx=i; break; }
+    if(l.includes("fps") && (l.includes("speed")||l.includes("velocity"))){ headerLineIdx=i; break; }
+  }
+
+  let start = 0, header=null, delim=",";
+  if(headerLineIdx>=0){
+    delim = detectDelim(lines[headerLineIdx]);
+    header = splitCSV(lines[headerLineIdx].replace(/\ufeff/g,""), delim).map(s=>s.trim().toLowerCase());
+    start = headerLineIdx+1;
+  }else{
+    header = null;
+    start = 0;
+  }
+
+  let speedIdx=-1, timeIdx=-1, tempIdx=-1, shotIdx=-1;
+  if(header){
+    for(let i=0;i<header.length;i++){
+      const h=header[i];
+      if(shotIdx<0 && (h==="#" || h.includes("shot"))) shotIdx=i;
+      if(speedIdx<0 && (h.includes("speed")||h.includes("velocity")) && h.includes("fps")) speedIdx=i;
+      if(speedIdx<0 && h==="v") speedIdx=i;
+      if(timeIdx<0 && (h==="time" || h.includes("time")||h.includes("timestamp"))) timeIdx=i;
+      if(tempIdx<0 && h.includes("temp")) tempIdx=i;
+    }
+  }
+
+  const shots=[];
+  for(let i=start;i<lines.length;i++){
+    const ln = lines[i].trim();
+    if(!ln) continue;
+
+    const d = detectDelim(ln);
+    const parts = splitCSV(ln, d);
+
+    // Strictly require a numeric shot index if we have a shot column.
+    if(header && shotIdx>=0){
+      const sraw = (parts[shotIdx] ?? "").toString().replace(/\ufeff/g,"").trim();
+      const sn = parseInt(sraw, 10);
+      if(!isFinite(sn) || sn<=0) continue;
+    }
+
+    let v=null,t=null,temp=null;
+    if(header && speedIdx>=0){
+      v = parseFloat((parts[speedIdx]||"").toString().replace(",","."));
+      if(timeIdx>=0) t = (parts[timeIdx]||"").toString().trim();
+      if(tempIdx>=0) temp = parseFloat((parts[tempIdx]||"").toString().replace(",","."));
+    } else {
+      // Heuristic: pick first fps-looking number
+      if(parts.length<2) continue;
+      for(const p of parts){
+        const num = parseFloat(p.toString().replace(",","."));
+        if(isFinite(num) && num>300 && num<6000){ v=num; break; }
+      }
+    }
+    if(isFinite(v)) shots.push({v_fps:v, time:t, tempC: (isFinite(temp)?temp:null)});
+  }
+  return shots;
+}
+
+
+/* ---------- Minimal OLE (Compound File) + BIFF8 parser for .xls ----------
+   This is a deliberately small subset to extract cell values from the first sheet.
+   Supports NUMBER, RK, LABELSST, SST, MULRK. Enough for typical chrono exports.
+*/
+function u8(buf){ return new Uint8Array(buf); }
+function u16le(b,o){ return b[o] | (b[o+1]<<8); }
+function u32le(b,o){ return (b[o]) | (b[o+1]<<8) | (b[o+2]<<16) | (b[o+3]<<24); }
+
+function oleExtractStream(arrayBuffer, streamNameCandidates=["Workbook","Book"]){
+  const b = u8(arrayBuffer);
+  // header signature D0CF11E0A1B11AE1
+  if(!(b[0]===0xD0 && b[1]===0xCF && b[2]===0x11 && b[3]===0xE0)) throw new Error("Not an OLE2 .xls");
+  const sectorShift = u16le(b,0x1E);
+  const sectorSize = 1<<sectorShift;
+  const miniSectorShift = u16le(b,0x20);
+  const miniSectorSize = 1<<miniSectorShift;
+  const numFATSectors = u32le(b,0x2C);
+  const dirStart = u32le(b,0x30);
+  const miniFATStart = u32le(b,0x3C);
+  const numMiniFATSectors = u32le(b,0x40);
+  const difatStart = u32le(b,0x44);
+  const numDIFATSectors = u32le(b,0x48);
+
+  const FAT = [];
+  function readSector(sectorId){
+    const start = (sectorId+1)*sectorSize;
+    return b.slice(start, start+sectorSize);
+  }
+
+  // DIFAT entries in header (109 entries)
+  const difat = [];
+  for(let i=0;i<109;i++){
+    const v = u32le(b, 0x4C + i*4);
+    if(v!==0xFFFFFFFF) difat.push(v);
+  }
+  // Follow DIFAT chain (rare for small files)
+  let difSec = difatStart, difCount = numDIFATSectors;
+  while(difCount>0 && difSec!==0xFFFFFFFF){
+    const sec = readSector(difSec);
+    for(let i=0;i<(sectorSize/4)-1;i++){
+      const v = u32le(sec,i*4);
+      if(v!==0xFFFFFFFF) difat.push(v);
+    }
+    difSec = u32le(sec, sectorSize-4);
+    difCount--;
+  }
+  // Build FAT
+  for(const fatSecId of difat){
+    const sec = readSector(fatSecId);
+    for(let i=0;i<sectorSize/4;i++){
+      FAT.push(u32le(sec,i*4));
+    }
+  }
+  function readChain(startSector){
+    const chunks=[];
+    let s = startSector;
+    let guard=0;
+    while(s!==0xFFFFFFFE && s!==0xFFFFFFFF && guard<200000){
+      chunks.push(readSector(s));
+      s = FAT[s];
+      guard++;
+    }
+    return chunks;
+  }
+  // Read directory stream
+  const dirChunks = readChain(dirStart);
+  const dirData = concatU8(dirChunks);
+  // Directory entries are 128 bytes
+  const entries=[];
+  for(let off=0; off+128<=dirData.length; off+=128){
+    const nameLen = u16le(dirData, off+64);
+    if(nameLen<2) continue;
+    const nameBytes = dirData.slice(off, off+0x40);
+    let name="";
+    for(let i=0;i<nameLen-2;i+=2){
+      const code = nameBytes[i] | (nameBytes[i+1]<<8);
+      name += String.fromCharCode(code);
+    }
+    const type = dirData[off+66]; // 2=stream, 5=root
+    const start = u32le(dirData, off+116);
+    const sizeLo = u32le(dirData, off+120);
+    // const sizeHi = u32le(dirData, off+124); // ignore
+    entries.push({name, type, start, size: sizeLo});
+  }
+  const root = entries.find(e=>e.type===5);
+  // Build MiniFAT
+  const miniFAT = [];
+  if(miniFATStart!==0xFFFFFFFF && numMiniFATSectors>0){
+    const mfChunks = readChain(miniFATStart);
+    const mfData = concatU8(mfChunks);
+    for(let i=0;i<mfData.length;i+=4) miniFAT.push(u32le(mfData,i));
+  }
+  // Read MiniStream (root's stream)
+  let miniStream = null;
+  if(root && root.start!==0xFFFFFFFF && root.size>0){
+    miniStream = concatU8(readChain(root.start)).slice(0, root.size);
+  }
+  function readStream(entry){
+    if(entry.size < 4096 && miniStream){
+      // mini stream chain in miniFAT
+      const chunks=[];
+      let ms = entry.start;
+      let guard=0;
+      while(ms!==0xFFFFFFFE && ms!==0xFFFFFFFF && guard<200000){
+        const start = ms*miniSectorSize;
+        chunks.push(miniStream.slice(start, start+miniSectorSize));
+        ms = miniFAT[ms];
+        guard++;
+      }
+      return concatU8(chunks).slice(0, entry.size);
+    } else {
+      return concatU8(readChain(entry.start)).slice(0, entry.size);
+    }
+  }
+
+  for(const cand of streamNameCandidates){
+    const e = entries.find(en=>en.type===2 && en.name===cand);
+    if(e) return readStream(e);
+  }
+  // fallback: first stream with "Workbook" substring
+  const e2 = entries.find(en=>en.type===2 && /workbook|book/i.test(en.name));
+  if(e2) return readStream(e2);
+  throw new Error("Workbook stream not found in .xls");
+}
+
+function concatU8(chunks){
+  const len = chunks.reduce((s,c)=>s+c.length,0);
+  const out = new Uint8Array(len);
+  let o=0;
+  for(const c of chunks){ out.set(c,o); o+=c.length; }
+  return out;
+}
+
+function biffParseFirstSheet(workbookU8){
+  // We'll parse workbook globals to get SST and first sheet BOF offset (via BOUNDSHEET)
+  let off=0;
+  const SST = [];
+  let sstStrings = null;
+  let firstSheetOffset = null;
+
+  function readUnicodeString(pos, cch, flags){
+    const is16 = (flags & 0x01)===0x01;
+    let s="";
+    if(is16){
+      for(let i=0;i<cch;i++){
+        const code = workbookU8[pos] | (workbookU8[pos+1]<<8);
+        s += String.fromCharCode(code);
+        pos += 2;
+      }
+    } else {
+      for(let i=0;i<cch;i++){
+        s += String.fromCharCode(workbookU8[pos]);
+        pos += 1;
+      }
+    }
+    return {s, pos};
+  }
+
+  while(off + 4 <= workbookU8.length){
+    const rt = workbookU8[off] | (workbookU8[off+1]<<8);
+    const rl = workbookU8[off+2] | (workbookU8[off+3]<<8);
+    const ro = off + 4;
+    if(rt===0x0085){ // BOUNDSHEET
+      const sheetOff = workbookU8[ro] | (workbookU8[ro+1]<<8) | (workbookU8[ro+2]<<16) | (workbookU8[ro+3]<<24);
+      const nameLen = workbookU8[ro+6];
+      const nameFlags = workbookU8[ro+7];
+      const {s} = readUnicodeString(ro+8, nameLen, nameFlags);
+      if(firstSheetOffset==null) firstSheetOffset = sheetOff;
+    } else if(rt===0x00FC){ // SST
+      // parse shared strings table (subset, enough for typical exports)
+      const total = workbookU8[ro] | (workbookU8[ro+1]<<8) | (workbookU8[ro+2]<<16) | (workbookU8[ro+3]<<24);
+      const unique = workbookU8[ro+4] | (workbookU8[ro+5]<<8) | (workbookU8[ro+6]<<16) | (workbookU8[ro+7]<<24);
+      let p = ro+8;
+      sstStrings = [];
+      for(let i=0;i<unique && p<ro+rl;i++){
+        const cch = workbookU8[p] | (workbookU8[p+1]<<8); p+=2;
+        const flags = workbookU8[p]; p+=1;
+        const hasRich = (flags & 0x08)===0x08;
+        const hasExt = (flags & 0x04)===0x04;
+        let rtRuns=0, extSz=0;
+        if(hasRich){ rtRuns = workbookU8[p] | (workbookU8[p+1]<<8); p+=2; }
+        if(hasExt){ extSz = workbookU8[p] | (workbookU8[p+1]<<8) | (workbookU8[p+2]<<16) | (workbookU8[p+3]<<24); p+=4; }
+        const r = readUnicodeString(p, cch, flags); p=r.pos;
+        // skip rich text runs and ext data
+        if(hasRich) p += rtRuns*4;
+        if(hasExt) p += extSz;
+        sstStrings.push(r.s);
+      }
+    } else if(rt===0x000A){ // EOF
+      // end of globals BOF - but workbook may have more. We'll stop globals parse once we have sheet offset.
+      if(firstSheetOffset!=null) break;
+    }
+    off += 4 + rl;
+    if(off>workbookU8.length) break;
+  }
+
+  if(firstSheetOffset==null) throw new Error("No sheet offset found in .xls");
+
+  // Parse first sheet records, collecting rows as arrays of values.
+  let p = firstSheetOffset;
+  const cells = new Map(); // key "r,c" -> value
+  while(p + 4 <= workbookU8.length){
+    const rt = workbookU8[p] | (workbookU8[p+1]<<8);
+    const rl = workbookU8[p+2] | (workbookU8[p+3]<<8);
+    const ro = p + 4;
+    if(rt===0x000A){ // EOF
+      break;
+    }
+    if(rt===0x0203){ // NUMBER
+      const r = workbookU8[ro] | (workbookU8[ro+1]<<8);
+      const c = workbookU8[ro+2] | (workbookU8[ro+3]<<8);
+      // xf at ro+4..5
+      const dv = new DataView(workbookU8.buffer, workbookU8.byteOffset + ro + 6, 8);
+      const val = dv.getFloat64(0, true);
+      cells.set(r+","+c, val);
+    } else if(rt===0x00FD){ // LABELSST
+      const r = workbookU8[ro] | (workbookU8[ro+1]<<8);
+      const c = workbookU8[ro+2] | (workbookU8[ro+3]<<8);
+      const idx = workbookU8[ro+6] | (workbookU8[ro+7]<<8) | (workbookU8[ro+8]<<16) | (workbookU8[ro+9]<<24);
+      const s = (sstStrings && sstStrings[idx]!=null) ? sstStrings[idx] : ("SST#"+idx);
+      cells.set(r+","+c, s);
+    } else if(rt===0x027E){ // RK
+      const r = workbookU8[ro] | (workbookU8[ro+1]<<8);
+      const c = workbookU8[ro+2] | (workbookU8[ro+3]<<8);
+      const rk = workbookU8[ro+6] | (workbookU8[ro+7]<<8) | (workbookU8[ro+8]<<16) | (workbookU8[ro+9]<<24);
+      cells.set(r+","+c, decodeRK(rk));
+    } else if(rt===0x00BD){ // MULRK
+      const r = workbookU8[ro] | (workbookU8[ro+1]<<8);
+      let c1 = workbookU8[ro+2] | (workbookU8[ro+3]<<8);
+      const c2 = workbookU8[ro+rl-2] | (workbookU8[ro+rl-1]<<8);
+      let q = ro+4;
+      for(let c=c1;c<=c2;c++){
+        // xf at q..q+1, rk at q+2..q+5
+        const rk = workbookU8[q+2] | (workbookU8[q+3]<<8) | (workbookU8[q+4]<<16) | (workbookU8[q+5]<<24);
+        cells.set(r+","+c, decodeRK(rk));
+        q += 6;
+      }
+    }
+    p += 4 + rl;
+  }
+
+  // Convert to 2D array; find max row/col
+  let maxR=0, maxC=0;
+  for(const k of cells.keys()){
+    const [rs,cs]=k.split(","); const r=+rs,c=+cs;
+    if(r>maxR) maxR=r; if(c>maxC) maxC=c;
+  }
+  const rows = [];
+  for(let r=0;r<=maxR;r++){
+    const row = [];
+    let empty=true;
+    for(let c=0;c<=maxC;c++){
+      const v = cells.get(r+","+c);
+      row.push(v==null ? "" : v);
+      if(v!=="" && v!=null) empty=false;
+    }
+    if(!empty) rows.push(row);
+  }
+  return rows;
+}
+
+function decodeRK(rk){
+  const fX100 = rk & 0x01;
+  const fInt = rk & 0x02;
+  let val;
+  if(fInt){
+    // signed 30-bit int
+    val = (rk & 0xFFFFFFFC) >> 2;
+  } else {
+    // float: store as 30 msbits of IEEE 754
+    const buf = new ArrayBuffer(8);
+    const dv = new DataView(buf);
+    // RK stores in bits 2..31, shift to high part of 64-bit float
+    dv.setUint32(4, rk & 0xFFFFFFFC, false);
+    dv.setUint32(0, 0, false);
+    val = dv.getFloat64(0, false);
+  }
+  if(fX100) val /= 100;
+  return val;
+}
+
+// XLSX minimal: handle basic OOXML by looking for sharedStrings + sheet1 xml (not full)
+async function parseXLSX(arrayBuffer){
+  // Basic ZIP parsing is heavy; since we only promised "minimal", we’ll defer:
+  // We'll attempt to use the browser's built-in zip via CompressionStream? Not available widely.
+  // So: we currently treat .xlsx as unsupported without external deps.
+  throw new Error(".xlsx parsing is not available in this build. Please export CSV or use .xls.");
+}
+
+async function parseChronoFile(file){
+  const ext = (file.name.split(".").pop()||"").toLowerCase();
+  if(ext==="csv" || ext==="tsv"){
+    const text = await readFileAsText(file);
+    return parseChronoCSV(text, file.name);
+  }
+  if(ext==="xls"){
+    const ab = await readFileAsArrayBuffer(file);
+    const wb = oleExtractStream(ab);
+    const rows = biffParseFirstSheet(wb);
+    return chronoRowsToShots(rows);
+  }
+  if(ext==="xlsx"){
+    const ab = await readFileAsArrayBuffer(file);
+    const rows = await parseXLSX(ab);
+    return chronoRowsToShots(rows);
+  }
+  // fallback: try text
+  const text = await readFileAsText(file);
+  return parseChronoCSV(text, file.name);
+}
+
+function chronoRowsToShots(rows){
+  // rows: 2D array of cell values from the first sheet
+  // Goal: reliably extract shot-indexed FPS values (ignore summary rows)
+  if(!rows || !rows.length) return [];
+
+  // Find header row
+  let headerIdx=-1;
+  for(let i=0;i<Math.min(rows.length,40);i++){
+    const r = rows[i].map(x=>String(x).toLowerCase().trim());
+    if(r.some(c=>c.includes("speed") && c.includes("fps")) || r.some(c=>c.includes("velocity") && c.includes("fps"))){
+      headerIdx=i; break;
+    }
+    if(r.some(c=>c==="#" || c.includes("shot")) && r.some(c=>c.includes("fps"))) { headerIdx=i; break; }
+  }
+
+  // Determine candidate columns
+  let shotCol=-1, speedCol=-1, timeCol=-1, tempCol=-1;
+  if(headerIdx>=0){
+    const h = rows[headerIdx].map(x=>String(x).toLowerCase().trim());
+    for(let c=0;c<h.length;c++){
+      const hc=h[c];
+      if(shotCol<0 && (hc==="#" || hc.includes("shot"))) shotCol=c;
+      if(speedCol<0 && (hc.includes("speed")||hc.includes("velocity")) && hc.includes("fps")) speedCol=c;
+      if(timeCol<0 && hc.includes("time")) timeCol=c;
+      if(tempCol<0 && hc.includes("temp")) tempCol=c;
+    }
+  }
+
+  // If we didn't find a speed column by header, use numeric heuristic:
+  // choose the column with the most fps-looking values in a plausible range.
+  const startScan = headerIdx>=0 ? headerIdx+1 : 0;
+  if(speedCol<0){
+    let best = {col:-1, hits:0};
+    const maxCols = Math.min(40, Math.max(...rows.map(r=>r.length)));
+    for(let c=0;c<maxCols;c++){
+      let hits=0;
+      for(let i=startScan;i<rows.length;i++){
+        const v = rows[i][c];
+        const num = (typeof v==="number") ? v : parseFloat(String(v).replace(",","."));
+        if(isFinite(num) && num>=500 && num<=6000) hits++;
+      }
+      if(hits>best.hits){ best={col:c,hits}; }
+    }
+    if(best.hits>=6) speedCol = best.col;
+  }
+
+  // If we didn't find shotCol, try to find a column that looks like 1..N integers.
+  if(shotCol<0){
+    const maxCols = Math.min(40, Math.max(...rows.map(r=>r.length)));
+    for(let c=0;c<maxCols;c++){
+      let seq=0, last=0;
+      for(let i=startScan;i<rows.length;i++){
+        const v=rows[i][c];
+        const num = (typeof v==="number") ? v : parseFloat(String(v).replace(",","."));
+        const n = Math.round(num);
+        if(isFinite(num) && Math.abs(num-n)<1e-6 && n>=1 && (last===0 || n===last+1)){
+          seq++; last=n;
+        } else if(seq>=6) break;
+      }
+      if(seq>=6){ shotCol=c; break; }
+    }
+  }
+
+  const shots=[];
+  for(let i=startScan;i<rows.length;i++){
+    const r=rows[i];
+    // Require shot index if available to avoid summary rows
+    if(shotCol>=0){
+      const sv=r[shotCol];
+      const num = (typeof sv==="number") ? sv : parseFloat(String(sv).replace(",","."));
+      const n = Math.round(num);
+      if(!(isFinite(num) && Math.abs(num-n)<1e-6 && n>=1)) continue;
+    }
+    let v=null,t=null,temp=null;
+    if(speedCol>=0){
+      const x=r[speedCol];
+      v = (typeof x==="number") ? x : parseFloat(String(x).replace(",","."));
+      if(timeCol>=0) t = String(r[timeCol]??"").trim();
+      if(tempCol>=0){
+        const tv=r[tempCol];
+        temp = (typeof tv==="number") ? tv : parseFloat(String(tv).replace(",","."));
+      }
+    } else {
+      // last resort: scan row for first fps-looking number
+      for(const cell of r){
+        const num = (typeof cell==="number") ? cell : parseFloat(String(cell).replace(",","."));
+        if(isFinite(num) && num>=500 && num<=6000){ v=num; break; }
+      }
+    }
+    if(isFinite(v)) shots.push({v_fps:v, time:t, tempC:(isFinite(temp)?temp:null)});
+  }
+  return shots;
+}
+
+
+/* =========================
+   Analysis
+   ========================= */
+
+function computeDispersionMM(shots){
+  const xs = shots.map(s=>s.x_mm).filter(v=>isFinite(v));
+  const ys = shots.map(s=>s.y_mm).filter(v=>isFinite(v));
+  if(xs.length<2 || ys.length<2) return {h_mm:null, v_mm:null, es_mm:null};
+  const h = Math.max(...xs) - Math.min(...xs);
+  const v = Math.max(...ys) - Math.min(...ys);
+  // radial extreme spread (max pairwise distance) approximated by bounding box diag
+  const esr = Math.sqrt(h*h + v*v);
+  return {h_mm:h, v_mm:v, es_mm:esr};
+}
+
+function toUnits(val_mm){
+  if(val_mm==null || !isFinite(val_mm)) return null;
+  return state.units==="mm" ? val_mm : (val_mm / MOA_MM_AT_1000Y);
+}
+
+function confidenceBand(n, flags){
+  // n-based base
+  let score = 0;
+  // ramp: <6 low, 6-10 moderate, >10 can reach high
+  score += clamp((n-5)/10, 0, 1) * 0.75;
+  // penalty by flags
+  const penalty = flags.reduce((s,f)=> s + (f.severity||0.12), 0);
+  score = clamp(score - penalty, 0, 1);
+  if(score >= 0.62) return {band:"High", cls:"good", score};
+  if(score >= 0.35) return {band:"Moderate", cls:"warn", score};
+  return {band:"Low", cls:"low", score};
+}
+
+function diagDetect(target, chrono){
+  const flags=[];
+  const shots = target.scoredShots;
+  const n = shots.length;
+  const disp = computeDispersionMM(shots);
+  const v = disp.v_mm, h = disp.h_mm;
+
+  if(n<10){
+    flags.push({key:"lowN", label:"Low sample size", tip:"Fewer than 10 scored shots — confidence reduced.", icon:"dot", severity:0.18});
+  }
+  if(isFinite(v) && isFinite(h)){
+    if(v > h*1.35 && toUnits(v) > 0.25){
+      flags.push({key:"vert", label:"Vertical stringing", tip:"Vertical dispersion dominates — check velocity, cadence, barrel state, or condition.", icon:"vert", severity:0.10});
+    }
+    if(h > v*1.25 && toUnits(h) > 0.25){
+      flags.push({key:"horiz", label:"Horizontal bias", tip:"Horizontal dispersion dominates — wind call or technique likely.", icon:"horiz", severity:0.08});
+    }
+  }
+
+  // Two-group pattern (simple 2-cluster heuristic)
+  if(n>=10){
+    const pts = shots.map(s=>[s.x_mm,s.y_mm]).filter(p=>isFinite(p[0])&&isFinite(p[1]));
+    const tg = twoGroupHeuristic(pts);
+    if(tg){
+      flags.push({key:"two", label:"Two-group pattern", tip:"Distinct clusters detected — check seating, hold, or a condition change.", icon:"two", severity:0.12});
+    }
+  }
+
+  // Chrono-based
+  if(chrono && chrono.shots && chrono.shots.length>=5){
+    const vs = chrono.shots.map(s=>s.v_fps).filter(v=>isFinite(v));
+    const sdev = sd(vs);
+    const espan = es(vs);
+    if(isFinite(sdev) && sdev >= 18){
+      flags.push({key:"vout", label:"Velocity outliers", tip:"Chrono shows inconsistent velocities for this string.", icon:"speed", severity:0.10});
+    } else if(isFinite(espan) && espan >= 55){
+      flags.push({key:"vout2", label:"Velocity outliers", tip:"Chrono extreme spread is elevated for this string.", icon:"speed", severity:0.08});
+    }
+  }
+
+  // Vertical walk over time (shot order vs y)
+  if(n>=10){
+    const ys = shots.map(s=>s.y_mm).filter(v=>isFinite(v));
+    const idx = ys.map((_,i)=>i+1);
+    const r = corr(idx, ys);
+    if(r!=null && Math.abs(r)>=0.62){
+      flags.push({key:"walk", label:"Vertical walk over time", tip:"Point of impact trends vertically across the string. Often condition, cadence, or barrel state related.", icon:"walk", severity:0.10});
+    }
+  }
+
+  // Temp drift note: correlation between tempC and velocity (align by index)
+  if(chrono && chrono.shots && chrono.shots.length>=8){
+    const temps = shots.map(s=>s.tempC).filter(v=>isFinite(v));
+    const vels = chrono.shots.map(s=>s.v_fps).filter(v=>isFinite(v));
+    const k = Math.min(temps.length, vels.length);
+    if(k>=8){
+      const rtv = corr(temps.slice(0,k), vels.slice(0,k));
+      if(rtv!=null && Math.abs(rtv)>=0.60){
+        flags.push({key:"temp", label:"Temperature drift note", tip:"Velocity change correlates with recorded temperature. Environmental influence likely.", icon:"temp", severity:0.00});
+      }
+    }
+  }
+
+  return flags;
+}
+
+function twoGroupHeuristic(pts){
+  // Very small k-means(2) style heuristic (few iters), return true if separation >> within
+  if(pts.length<10) return false;
+  let c1=pts[0], c2=pts[Math.floor(pts.length/2)];
+  for(let iter=0;iter<6;iter++){
+    const a=[], b=[];
+    for(const p of pts){
+      const d1=dist2(p,c1), d2=dist2(p,c2);
+      (d1<=d2 ? a : b).push(p);
+    }
+    if(a.length<3 || b.length<3) return false;
+    c1=meanPt(a); c2=meanPt(b);
+  }
+  const a=[], b=[];
+  for(const p of pts){
+    const d1=dist2(p,c1), d2=dist2(p,c2);
+    (d1<=d2 ? a : b).push(p);
+  }
+  if(a.length<3 || b.length<3) return false;
+  const sep = Math.sqrt(dist2(c1,c2));
+  const w1 = avgDist(a,c1), w2 = avgDist(b,c2);
+  const within = (w1+w2)/2;
+  return sep > within*2.3;
+}
+function dist2(p,c){ const dx=p[0]-c[0], dy=p[1]-c[1]; return dx*dx+dy*dy; }
+function meanPt(arr){
+  let sx=0,sy=0,c=0;
+  for(const p of arr){ sx+=p[0]; sy+=p[1]; c++; }
+  return [sx/c, sy/c];
+}
+function avgDist(arr,c){
+  let s=0;
+  for(const p of arr) s += Math.sqrt(dist2(p,c));
+  return s/arr.length;
+}
+
+function runAnalysis(){
+  const pairs = state.pairings;
+  const rows = [];
+  let totalScored=0;
+  for(const t of state.targets){
+    const cid = pairs[t.id] || null;
+    const chrono = cid ? state.chronoFiles.find(c=>c.id===cid) : null;
+    const scored = t.scoredShots;
+    totalScored += scored.length;
+    const disp = computeDispersionMM(scored);
+    const flags = diagDetect(t, chrono);
+    const conf = confidenceBand(scored.length, flags);
+    // velocity context from chrono (aligned, but keep independent)
+    const vels = chrono?.shots?.map(s=>s.v_fps).filter(v=>isFinite(v)) || [];
+    const vAvg = mean(vels), vSd = sd(vels);
+    rows.push({
+      targetId: t.id,
+      targetName: t.name,
+      n: scored.length,
+      nAll: t.shots.length,
+      hasSighters: t.shots.length !== scored.length,
+      v_mm: disp.v_mm,
+      h_mm: disp.h_mm,
+      es_mm: disp.es_mm,
+      vAvg, vSd,
+      flags,
+      conf,
+      pairing: {chronoId: cid, chronoName: chrono?.name || null, chronoShots: chrono?.shots?.length || 0}
+    });
+  }
+  // sort by vertical (primary)
+  rows.sort((a,b)=>{
+    const av = a.v_mm ?? 1e18;
+    const bv = b.v_mm ?? 1e18;
+    if(av!==bv) return av-bv;
+    // secondary: more shots better
+    return (b.n||0)-(a.n||0);
+  });
+  state.results = { rows, totalScored, generatedAt: new Date().toISOString() };
+}
+
+function iconSvg(kind){
+  // Tiny inline SVG set (lucide-ish vibe)
+  const common = 'fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"';
+  if(kind==="vert") return `<svg viewBox="0 0 24 24" ${common}><path d="M12 3v18"/><path d="M8 7l4-4 4 4"/><path d="M8 17l4 4 4-4"/></svg>`;
+  if(kind==="horiz") return `<svg viewBox="0 0 24 24" ${common}><path d="M3 12h18"/><path d="M7 8l-4 4 4 4"/><path d="M17 8l4 4-4 4"/></svg>`;
+  if(kind==="two") return `<svg viewBox="0 0 24 24" ${common}><circle cx="8" cy="12" r="2"/><circle cx="16" cy="12" r="2"/><path d="M4 6v12"/><path d="M20 6v12"/></svg>`;
+  if(kind==="speed") return `<svg viewBox="0 0 24 24" ${common}><path d="M20 13a8 8 0 1 1-16 0"/><path d="M12 13l3-3"/><path d="M12 3v2"/></svg>`;
+  if(kind==="walk") return `<svg viewBox="0 0 24 24" ${common}><path d="M6 17c2-6 4 6 6 0s4 6 6 0"/><path d="M12 3v4"/><path d="M10 5h4"/></svg>`;
+  if(kind==="temp") return `<svg viewBox="0 0 24 24" ${common}><path d="M10 14a2 2 0 1 0 4 0"/><path d="M12 2v10"/><path d="M12 22a5 5 0 0 0 3-9V6a3 3 0 0 0-6 0v7a5 5 0 0 0 3 9z"/></svg>`;
+  return `<svg viewBox="0 0 24 24" ${common}><circle cx="12" cy="12" r="3"/></svg>`;
+}
+
+function render(){
+  // session name default
+  if(!els.sessionName.value){
+    const d = new Date();
+    const nice = d.toLocaleDateString(undefined,{month:"short",day:"2-digit",year:"numeric"});
+    els.sessionName.value = state.sessionName || (nice + " — Session");
+    state.sessionName = els.sessionName.value;
+  } else {
+    state.sessionName = els.sessionName.value;
+  }
+
+  // KPI
+  const totalTargets = state.targets.length;
+  const totalScored = state.targets.reduce((s,t)=>s + (t.scoredShots?.length||0), 0);
+  const paired = Object.keys(state.pairings).length;
+  els.kpiTargets.textContent = String(totalTargets);
+  els.kpiShots.textContent = String(totalScored);
+  els.kpiPaired.textContent = `${paired}/${totalTargets}`;
+
+  // Session state badge
+  const hasData = totalTargets>0 || state.chronoFiles.length>0;
+  els.sessState.textContent = hasData ? "Loaded" : "Empty";
+
+  // Step1 list
+  els.smCountBadge.textContent = `${state.shotmarkerFiles.length} file${state.shotmarkerFiles.length===1?"":"s"} • ${totalTargets} targets`;
+  if(state.shotmarkerFiles.length===0){
+    els.smList.textContent = "No ShotMarker files yet.";
+  }else{
+    els.smList.innerHTML = state.shotmarkerFiles.map(f=>{
+      const t = f.targets?.length||0;
+      return `<div style="padding:6px 0;border-bottom:1px solid rgba(255,255,255,.06)">
+        <div><b>${escapeHtml(f.name)}</b> <span class="muted">• ${t} target${t===1?"":"s"}</span></div>
+      </div>`;
+    }).join("");
+  }
+
+  // Step2 list
+  els.chCountBadge.textContent = `${state.chronoFiles.length} file${state.chronoFiles.length===1?"":"s"}`;
+  if(state.chronoFiles.length===0){
+    els.chList.textContent = "No chrono files yet.";
+  }else{
+    els.chList.innerHTML = state.chronoFiles.map(c=>{
+      const n = c.shots?.length || 0;
+      const vels = c.shots?.map(s=>s.v_fps).filter(v=>isFinite(v)) || [];
+      const vAvg = mean(vels), vSd = sd(vels);
+      return `<div style="padding:6px 0;border-bottom:1px solid rgba(255,255,255,.06)">
+        <div><b>${escapeHtml(c.name)}</b> <span class="muted">• ${n} shots</span></div>
+        <div class="muted small">${isFinite(vAvg)? `avg ${fmt(vAvg,1)} fps • SD ${fmt(vSd,1)} fps` : "—"}</div>
+      </div>`;
+    }).join("");
+  }
+
+  // Step3 pairing matrix
+  renderPairMatrix();
+
+  // Step4 readiness
+  const ready = totalTargets>0 && state.chronoFiles.length>0 && Object.keys(state.pairings).length===totalTargets;
+  els.btnRun.disabled = !ready;
+  els.runBadge.textContent = ready ? "Ready" : "Not ready";
+  els.runHint.textContent = ready ? "You're good. Run it." : "Load files and complete pairings.";  applyRunTooltip();  applyRunEnabled();
+}
+
+
+
+function renderPairMatrix(){
+  const targets = state.targets;
+  const chronos = state.chronoFiles;
+  const paired = Object.keys(state.pairings).length;
+  els.pairBadge.textContent = `${paired}/${targets.length} paired`;
+
+  if(targets.length===0 || chronos.length===0){
+    els.pairArea.textContent = "Load ShotMarker and chrono files to build the pairing selector.";
+    return;
+  }
+
+  const colLabels = chronos.map((_,i)=>String.fromCharCode(65+i)); // A,B,C...
+
+  let html = `<div class="matrixwrap"><table class="matrix matrix-compact">
+    <thead><tr>
+      <th style="min-width:360px">Target</th>
+      <th style="min-width:280px;text-align:right">Chrono string</th>
+    </tr></thead><tbody>`;
+
+  for(const t of targets){
+    const scoredN = t.scoredShots?.length||0;
+    const allN = t.shots?.length||0;
+    const hasS = allN!==scoredN;
+    const rowWarn = pairingWarnText(t);
+    const pairedId = state.pairings[t.id] || "";
+    const pairedChrono = pairedId ? chronos.find(c=>c.id===pairedId) : null;
+
+    // Precompute mismatch note for selected option (if any)
+    let mismatchNote = "";
+    if(pairedChrono){
+      const cN = pairedChrono.shots?.length||0;
+      if(cN && scoredN && Math.abs(cN - scoredN) >= 3){
+        mismatchNote = `Shot count mismatch: target has ${scoredN}, chrono has ${cN}.`;
+      }
+    }
+
+    html += `<tr>
+      <td>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <b>${escapeHtml(shortName(t.name,58))}</b>
+          ${hasS? `<span class="chip low toolt" data-tip="Sighters detected; excluded from scoring.">Sighters</span>`:""}
+          ${pairedChrono? `<span class="chip low toolt" data-tip="${escapeHtml(pairedChrono.name)}">Paired: ${escapeHtml(shortName(pairedChrono.name,34))}</span>` : ""}
+        </div>
+        <div class="muted small">${scoredN} scored • ${allN} total ${rowWarn? ` • <span class="warntext">${escapeHtml(rowWarn)}</span>`:""}</div>
+      </td>
+      <td class="right">
+        <div class="pairSelWrap">
+          <span class="pairSelectArrow">
+            <select class="pairSelect" data-tid="${t.id}">
+              <option value="" ${pairedId===""?"selected":""}>— Select chrono —</option>
+              ${chronos.map((c,i)=>{
+                const label = `Chrono ${colLabels[i]} — ${(c.shots?.length||0)} shots`;
+                return `<option value="${c.id}" ${pairedId===c.id?"selected":""}>${escapeHtml(label)}</option>`;
+              }).join("")}
+            </select>
+          </span>
+          ${mismatchNote ? `<div class="pairNote warn">${escapeHtml(mismatchNote)}</div>` : `<div class="pairNote">&nbsp;</div>`}
+        </div>
+      </td>
+    </tr>`;
+  }
+
+  html += `</tbody></table></div>`;
+  els.pairArea.innerHTML = html;
+
+  // Bind change handlers
+  els.pairArea.querySelectorAll("select.pairSelect").forEach(sel=>{
+    sel.addEventListener("change", ()=>{
+      const tid = sel.getAttribute("data-tid");
+      const cid = sel.value;
+      if(!cid){
+        delete state.pairings[tid];
+      }else{
+        state.pairings[tid] = cid;
+      }
+      render();
+      renderPairMatrix();
+    });
+  });
+}
+
+
+function pairingWarnText(t){
+  // lightweight: tell shooter if scored shots are very low
+  const n = t.scoredShots?.length||0;
+  if(n>0 && n<8) return "Low N";
+  return "";
+}
+
+function shortName(name, max=44){
+  name = name||"";
+  if(name.length<=max) return name;
+  return name.slice(0,max-1) + "…";
+}
+
+
+function sanitizeFilename(s){
+  // Windows + common filesystem unsafe characters
+  return String(s||"")
+    .replace(/[<>:"\/\\|?*\x00-\x1F]/g, "_")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/\.+$/g, "")  // no trailing dots
+    .slice(0, 120) || "Session";
+}
+function pad2(n){ return String(n).padStart(2,"0"); }
+function buildExportFilename(baseName){
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = pad2(d.getMonth()+1);
+  const dd = pad2(d.getDate());
+  const hh = pad2(d.getHours());
+  const mi = pad2(d.getMinutes());
+  const safe = sanitizeFilename(baseName);
+  return `NodeLab_${safe}_${yyyy}-${mm}-${dd}_${hh}${mi}.json`;
+}
+
+function escapeHtml(s){
+  return String(s??"").replace(/[&<>"']/g, (ch)=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[ch]));
+}
+
+
+function getPrimaryShotMarkerName(){
+  // Prefer the first target/session name; fall back to app name.
+  if (typeof state !== "undefined"){
+    // Some builds store SM sessions in state.targets or state.smTargets
+    const t = (state.targets && state.targets[0]) || (state.smTargets && state.smTargets[0]);
+    if(t){
+      return t.session || t.name || t.fileName || t.filename || t.title || "ShotMarker";
+    }
+    // Some builds store original file name
+    if(state.shotmarkerFileName) return state.shotmarkerFileName;
+  }
+  return "ShotMarker";
+}
+
+/* =========================
+   Results rendering
+   ========================= */
+
+function renderResults(){
+  if(!state.results || !state.results.rows.length){
+    els.resultsArea.innerHTML = `<div class="muted small">No results yet.</div>`;
+    return;
+  }
+  const rows = state.results.rows;
+  const unitLabel = (state.units==="mm") ? "mm @ 1000y" : "MOA @ 1000y";
+  const vKey = (state.units==="mm") ? "v_mm" : "v_moa";
+  // table
+  let html = `
+    <div class="row" style="justify-content:space-between;gap:12px;margin-bottom:10px">
+      <div class="muted small">Ranked by <b>vertical dispersion</b> (${unitLabel}). Click a row to expand details.</div>
+      <div class="muted small mono">Generated ${new Date(state.results.generatedAt).toLocaleString()}</div>
+    </div>
+    <div class="tablewrap"><table>
+      <thead><tr>
+        <th>#</th>
+        <th>Target</th>
+        <th>Vertical</th>
+        <th>Horizontal</th>
+        <th class="toolt" data-tip="Shown as scored/total. Sighters are excluded from scoring.">Shots</th>
+        <th>Velocity (context)</th>
+        <th>Confidence</th>
+        <th>Diagnostics</th>
+      </tr></thead>
+      <tbody>
+  `;
+  rows.forEach((r, idx)=>{
+    const v = toUnits(r.v_mm);
+    const h = toUnits(r.h_mm);
+    const vel = (isFinite(r.vAvg) ? `${fmt(r.vAvg,1)} ± ${fmt(r.vSd,1)} fps` : "—");
+    const conf = r.conf;
+    const diagIcons = r.flags.map(f=>{
+      const cls = f.key==="temp" ? "low" : (f.severity>=0.12 ? "warn" : "low");
+      return `<span class="ico ${cls} toolt" data-tip="${escapeHtml(f.tip)}">${iconSvg(f.icon)}</span>`;
+    }).join("");
+    const sighterNote = r.hasSighters ? `<span class="chip low toolt" data-tip="Sighters detected; excluded from scoring.">Sighters</span>` : "";
+    const warnPair = (r.pairing && r.pairing.chronoId && r.pairing.chronoShots && r.n && Math.abs(r.pairing.chronoShots - r.n) >= 3)
+      ? `<span class="chip warn toolt" data-tip="Shot count mismatch between scored shots and chrono shots. This does not change ranking; it’s a pairing sanity check.">Pair mismatch</span>`
+      : "";
+    html += `
+      <tr class="resRow" data-target="${r.targetId}">
+        <td class="rank">${idx+1}</td>
+        <td>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <b>${escapeHtml(shortName(r.targetName,64))}</b> ${sighterNote} ${warnPair}
+          </div>
+          <div class="muted small">${escapeHtml(r.pairing.chronoName || "Unpaired")} </div>
+        </td>
+        <td><b>${isFinite(v)? fmt(v,3):"—"}</b></td>
+        <td>${isFinite(h)? fmt(h,3):"—"}</td>
+        <td class="mono toolt" data-tip="Scored shots exclude sighters.">${r.n}/${r.nAll}</td>
+        <td class="mono">${escapeHtml(vel)}</td>
+        <td><span class="chip ${conf.cls} toolt" data-tip="${confTip(conf.band)}">${conf.band}</span></td>
+        <td><div class="icons">${diagIcons || `<span class="muted small">—</span>`}</div></td>
+      </tr>
+      <tr class="resDetail" data-detail="${r.targetId}" style="display:none;background:rgba(0,0,0,.10)">
+        <td colspan="8">
+          ${renderDetail(r)}
+        </td>
+      </tr>
+    `;
+  });
+  html += `</tbody></table></div>`;
+  els.resultsArea.innerHTML = html;
+
+  els.resultsArea.querySelectorAll(".resRow").forEach(row=>{
+    row.addEventListener("click", ()=>{
+      const tid = row.getAttribute("data-target");
+      const det = els.resultsArea.querySelector(`tr.resDetail[data-detail="${tid}"]`);
+      det.style.display = (det.style.display==="none" || !det.style.display) ? "table-row" : "none";
+    });
+  });
+}
+
+function confTip(band){
+  if(band==="High") return "Stable result with enough shots to trust.";
+  if(band==="Moderate") return "Useful signal — confirm before acting.";
+  return "Informational only. Don’t chase.";
+}
+
+
+function getRunReadiness(){
+  // Returns {ready:boolean, reason:string}
+  try{
+    const tN = (state.targets && state.targets.length) || 0;
+    const cN = (state.chronoFiles && state.chronoFiles.length) || 0;
+    const pN = state.pairings ? Object.keys(state.pairings).length : 0;
+
+    if(tN === 0) return {ready:false, reason:"Add ShotMarker file(s)"};
+    if(cN === 0) return {ready:false, reason:"Add chrono file(s)"};
+    if(pN < tN) return {ready:false, reason:"Pair each target to a chrono string"};
+    return {ready:true, reason:"Run analysis"};
+  }catch(e){
+    return {ready:false, reason:"Not ready"};
+  }
+}
+function applyRunTooltip(){
+  const btn = els && (els.runBtn || els.btnRun || document.getElementById("btnRun") || document.getElementById("runBtn"));
+  if(!btn) return;
+  const r = getRunReadiness();
+  btn.title = r.reason;
+}
+
+
+
+function applyRunEnabled(){
+  const btn = (els && (els.runBtn || els.btnRun)) || document.getElementById("btnRun") || document.getElementById("runBtn");
+  if(!btn) return;
+  const r = getRunReadiness();
+  // If button is not a <button>, guard; otherwise set disabled.
+  if("disabled" in btn) btn.disabled = !r.ready;
+  btn.setAttribute("aria-disabled", r.ready ? "false" : "true");
+}
+
+function renderDetail(r){
+  const unitLabel = (state.units==="mm") ? "mm @ 1000y" : "MOA @ 1000y";
+  const v = toUnits(r.v_mm);
+  const h = toUnits(r.h_mm);
+  const esv = toUnits(r.es_mm);
+  const flags = r.flags.map(f=>`<div class="muted small" style="margin:4px 0"><b>${escapeHtml(f.label)}:</b> ${escapeHtml(f.tip)}</div>`).join("");
+  const lines = [];
+  lines.push(`<div class="row" style="justify-content:space-between;gap:12px;align-items:flex-start">
+    <div>
+      <div><b>${escapeHtml(r.targetName)}</b></div>
+      <div class="muted small">Paired chrono: ${escapeHtml(r.pairing.chronoName||"—")}</div>
+    </div>
+    <div class="chips">
+      <span class="chip low toolt" data-tip="Vertical is the primary ranking signal in NodeLab.">Vertical-first</span>
+      <span class="chip low toolt" data-tip="Velocity is supporting context — it does not drive ranking.">Velocity context</span>
+      <span class="chip ${r.conf.cls}">${r.conf.band} confidence</span>
+    </div>
+  </div>`);
+
+  lines.push(`<div class="hr"></div>`);
+  lines.push(`<div class="split">
+    <div class="note">
+      <div class="muted small">Dispersion (${unitLabel})</div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:8px">
+        <div class="box"><div class="v mono">${isFinite(v)?fmt(v,3):"—"}</div><div class="k">Vertical</div></div>
+        <div class="box"><div class="v mono">${isFinite(h)?fmt(h,3):"—"}</div><div class="k">Horizontal</div></div>
+        <div class="box"><div class="v mono">${isFinite(esv)?fmt(esv,3):"—"}</div><div class="k">Radial ES (approx)</div></div>
+      </div>
+      <div style="margin-top:8px" class="muted small">Shots: <span class="mono">${r.n}</span> scored (${r.nAll} total)</div>
+    </div>
+    <div class="note">
+      <div class="muted small">Velocity (context)</div>
+      <div style="margin-top:8px" class="mono">${isFinite(r.vAvg)? `avg ${fmt(r.vAvg,1)} fps • SD ${fmt(r.vSd,1)} fps` : "—"}</div>
+      <div style="margin-top:8px" class="muted small">NodeLab does not rank by velocity. Use this to explain vertical, not to chase speed.</div>
+      <div style="margin-top:10px">
+        <details>
+          <summary>Show diagnostic explanations</summary>
+          <div class="inner">${flags || `<div class="muted small">No diagnostics triggered for this target.</div>`}</div>
+        </details>
+      </div>
+    </div>
+  </div>`);
+
+  return lines.join("");
+}
+
+/* =========================
+   Export / Import
+   ========================= */
+
+function exportSession(){
+  const payload = {
+    version: state.version,
+    exportedAt: new Date().toISOString(),
+    units: state.units,
+    sessionName: state.sessionName,
+    shotmarkerFiles: state.shotmarkerFiles.map(f=>({
+      id:f.id, name:f.name, targets:f.targets
+    })),
+    chronoFiles: state.chronoFiles.map(c=>({
+      id:c.id, name:c.name, shots:c.shots
+    })),
+    targets: state.targets,
+    pairings: state.pairings
+  };
+
+  const blob = new Blob([JSON.stringify(payload,null,2)], {type:"application/json"});
+
+  const d = new Date();
+  const pad = (n)=>String(n).padStart(2,"0");
+  const baseNameRaw = (state.shotmarkerFiles?.[0]?.name || state.sessionName || "Session");
+  const baseNoExt = String(baseNameRaw).replace(/\.[^.]+$/,"");
+  const safe = baseNoExt
+    .trim()
+    .replace(/[^\w\-]+/g,"_")
+    .replace(/^_+|_+$/g,"")
+    .slice(0,40) || "Session";
+
+  const fn = `NodeLab_${safe}_${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}.json`;
+
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  const fname = buildExportFilename(getPrimaryShotMarkerName());
+a.download = fname;
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 1500);
+  toast(`Exported ${fn}`);
+}function importSession(file){
+  const r = new FileReader();
+  r.onload = ()=>{
+    try{
+      const obj = JSON.parse(r.result);
+      if(!obj || !obj.targets || !obj.chronoFiles) throw new Error("Not a NodeLab session file");
+      // hydrate
+      state.units = obj.units || "moa";
+      state.sessionName = obj.sessionName || "";
+      state.shotmarkerFiles = (obj.shotmarkerFiles||[]).map(f=>({id:f.id||uid("sm"), name:f.name, targets:f.targets||[]}));
+      state.chronoFiles = (obj.chronoFiles||[]).map(c=>({id:c.id||uid("ch"), name:c.name, shots:c.shots||[]}));
+      state.targets = obj.targets || [];
+      state.pairings = obj.pairings || {};
+      // UI
+      els.sessionName.value = state.sessionName || els.sessionName.value;
+      setUnits(state.units);
+      toast("Imported session .json");
+      render();
+      if(Object.keys(state.pairings).length === state.targets.length && state.targets.length){
+        runAnalysis(); renderResults();
+      } else {
+        els.resultsArea.innerHTML = `<div class="muted small">Imported data. Complete pairings (if needed), then run analysis.</div>`;
+      }
+    }catch(e){
+      console.error(e);
+      toast("Import failed: " + e.message);
+    }
+  };
+  r.readAsText(file);
+}
+
+/* =========================
+   Event wiring
+   ========================= */
+
+function setUnits(u){
+  state.units = u;
+  els.unitMoa.classList.toggle("on", u==="moa");
+  els.unitMm.classList.toggle("on", u==="mm");
+  // if results exist, re-render
+  if(state.results) renderResults();
+  render();
+}
+
+els.unitMoa.addEventListener("click", ()=>setUnits("moa"));
+els.unitMm.addEventListener("click", ()=>setUnits("mm"));
+
+els.btnRefresh.addEventListener("click", ()=>{
+  render();
+  if(state.results) renderResults();
+  toast("UI refreshed");
+});
+
+els.btnReset.addEventListener("click", ()=>{
+  if(!confirm("Reset session? This clears loaded files, pairings, and results.")) return;
+  state.sessionName = "";
+  state.shotmarkerFiles = [];
+  state.chronoFiles = [];
+  state.targets = [];
+  state.pairings = {};
+      if(state.results){ state.resultsStale = true; }
+  state.results = null;
+  els.sessionName.value = "";
+  els.resultsArea.textContent = "No results yet.";
+  toast("Session reset");
+  render();
+});
+
+els.btnExport.addEventListener("click", exportSession);
+els.importJson.addEventListener("change", (e)=>{
+  const f = e.target.files?.[0];
+  if(f) importSession(f);
+  e.target.value="";
+});
+
+els.sessionName.addEventListener("input", ()=>{
+  state.sessionName = els.sessionName.value;
+});
+
+els.smFiles.addEventListener("change", async (e)=>{
+  const files = Array.from(e.target.files||[]);
+  if(!files.length) return;
+  for(const file of files){
+    try{
+      const text = await readFileAsText(file);
+      const targets = parseShotMarkerText(text, file.name);
+      const smObj = { id: uid("sm"), name: file.name, targets };
+      state.shotmarkerFiles.push(smObj);
+      // flatten targets
+      for(const t of targets) state.targets.push(t);
+      toast(`Loaded ShotMarker: ${file.name}`);
+    }catch(err){
+      console.error(err);
+      toast(`ShotMarker parse failed: ${file.name}`);
+    }
+  }
+  // clear pairings if target set changed
+  state.pairings = {};
+  state.results = null;
+  els.resultsArea.textContent = "No results yet.";
+  render();
+  e.target.value="";
+});
+
+els.chFiles.addEventListener("change", async (e)=>{
+  const files = Array.from(e.target.files||[]);
+  if(!files.length) return;
+  for(const file of files){
+    try{
+      const shots = await parseChronoFile(file);
+      const cObj = { id: uid("ch"), name: file.name, shots };
+      state.chronoFiles.push(cObj);
+      toast(`Loaded chrono: ${file.name}`);
+    }catch(err){
+      console.error(err);
+      toast(`Chrono parse failed: ${file.name} (${err.message})`);
+    }
+  }
+  // clear pairings if chrono set changed
+  state.pairings = {};
+  state.results = null;
+  els.resultsArea.textContent = "No results yet.";
+  render();
+  e.target.value="";
+});
+
+els.btnRun.addEventListener("click", ()=>{
+  runAnalysis();
+  renderResults();
+  toast("Analysis complete");
+});
+
+// init
+render();
+
+// Step 3: Reset pairing (only clears pairings)
+// If results already exist, mark them stale so the UI can prompt rerun (non-blocking).
+(function(){
+  const b = document.getElementById("btnResetPairing");
+  if(!b) return;
+  b.addEventListener("click", ()=>{
+    if(typeof state !== "undefined" && state.pairings){
+      state.pairings = {};
+      // Re-render
+      if(typeof render === "function") render();
+      if(typeof renderPairMatrix === "function") renderPairMatrix();
+    }
+  });
+})();
+
+</script>
+</body>
+</html>
+
