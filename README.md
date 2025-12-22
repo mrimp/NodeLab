@@ -27,10 +27,14 @@ NodeLab runs entirely in your browser.
 **All parsing and analysis runs locally.**
 
 ## Screenshots
-Add 3 screenshots in `docs/screenshots/` and link them here:
-- Step 3 pairing (dropdowns)
-- Ranking table
-- Drilldown view
+<img width="2465" height="1025" alt="image" src="https://github.com/user-attachments/assets/fa23aae6-d384-478b-a2f6-4726a83de4e5" />
+Each ShotMarker target is paired to exactly one chronograph string using a compact dropdown. Hover highlights make it easy to verify pairings at a glance, and shot counts are shown before you run analysis.
+
+<img width="2497" height="910" alt="image" src="https://github.com/user-attachments/assets/e2f34c5d-8d96-4902-bab5-d7d473e03537" />
+Results are ranked by group behavior and consistency, with a confidence badge that explains how much trust to place in each outcome — without telling you what to do.
+
+<img width="2480" height="1450" alt="image" src="https://github.com/user-attachments/assets/55645ff7-ab00-4d8a-aa7d-52a0ed1484b9" />
+Expand any result to inspect group shape, vertical and horizontal behavior, shot counts, and supporting metrics — designed to help you understand why a result ranks where it does.
 
 ## Issues / Support
 When opening an issue, include:
