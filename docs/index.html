@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>NodeLab v2 • Standalone</title>
+<title>NodeLab v2.4.1 • Standalone</title>
 <style>
   :root{
     --bg:#0b0f14;
@@ -39,7 +39,7 @@
       var(--bg);
   }
   a{color:var(--accent)}
-  .wrap{max-width:1020px;margin:0 auto;padding:26px 18px 60px}
+  .wrap{max-width:1240px;margin:0 auto;padding:26px 18px 60px}
   header{
     display:flex;align-items:flex-end;justify-content:space-between;gap:16px;
     padding:18px 18px 14px;border:1px solid var(--line);border-radius:22px;
@@ -137,7 +137,7 @@
   .tablewrap{overflow:auto;border:1px solid var(--line);border-radius:16px}
   table{width:100%;border-collapse:separate;border-spacing:0;min-width:860px}
   thead th{
-    position:sticky;top:0;z-index:2;
+    position:sticky;top:var(--stickyOffset, 0px);z-index:2;
     text-align:left;font-size:12px;color:var(--muted);
     background:rgba(15,22,32,.92);
     backdrop-filter: blur(8px);
@@ -206,7 +206,7 @@
   .matrixwrap{overflow:auto;border:1px solid var(--line);border-radius:16px}
   .matrix{min-width:860px;width:100%;border-collapse:separate;border-spacing:0}
   .matrix th,.matrix td{padding:10px 10px;border-bottom:1px solid rgba(255,255,255,.06);vertical-align:middle}
-  .matrix thead th{position:sticky;top:0;background:rgba(15,22,32,.92);backdrop-filter: blur(8px);z-index:2;color:var(--muted);font-size:12px;border-bottom:1px solid var(--line)}
+  .matrix thead th{position:sticky;top:var(--stickyOffset, 0px);background:rgba(15,22,32,.92);backdrop-filter: blur(8px);z-index:2;color:var(--muted);font-size:12px;border-bottom:1px solid var(--line)}
   .matrix tbody tr:hover{background:rgba(124,156,255,.05)}
   .cb{width:18px;height:18px;accent-color: var(--accent);cursor:pointer}
   .right{display:flex;justify-content:flex-end}
@@ -406,13 +406,80 @@ button:disabled:hover, .btn[disabled]:hover{
   background: inherit;
 }
 
+
+/* --- v2.1: Scoring Zone Probability (drilldown-only) --- */
+.szpCard{
+  margin-top:14px;
+  padding:14px 14px;
+  border-radius:16px;
+  background: rgba(255,255,255,.03);
+  border: 1px solid rgba(255,255,255,.08);
+}
+.szpTop{ display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
+.szpTitle{ font-weight:850; letter-spacing:.2px; }
+.szpKicker{ font-size:12px; color: rgba(255,255,255,.62); margin-top:4px; line-height:1.25; }
+.szpBand{ display:inline-flex; align-items:center; gap:8px; }
+.szpBand .chip{ margin:0; }
+
+
+/* v2.2 tweaks */
+th.vKey{ position:relative; }
+th.vKey{ font-weight:800; letter-spacing:0.2px; }
+.noteArea{ width:100%; min-height:90px; resize:vertical; }
+.noteStamp{ font-size:11px; opacity:0.75; margin-top:6px; }
+
+
+/* v2.3.2: drilldown uses more right-side space */
+.split.drillSplit{ grid-template-columns: 0.65fr 2.35fr; }
+
+/* v2.3.2: compare bar is a raised, sticky strip above table */
+.comparebar{
+  display:none;
+  position: sticky;
+  top: 0;
+  z-index: 6;
+  margin: 0 0 10px 0;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: rgba(0,0,0,.14);
+  box-shadow: 0 10px 22px rgba(0,0,0,.28);
+}
+.comparebar.show{ display:block; }
+/* v2.4: compare grid (aligned side-by-side) */
+.compareGrid .cgCell{
+  padding:10px 12px;
+  border:1px solid var(--line);
+  border-radius:14px;
+  background: rgba(0,0,0,.20);
+}
+.compareGrid .cgHead{ background: rgba(0,0,0,.28); }
+.compareGrid .cgLabel{
+  background: transparent;
+  border: none;
+  padding:12px 4px 0 4px;
+  align-self: start;
+}
+
+.tablewrap{ --stickyOffset: 0px; }
+.tablewrap thead th{ top: var(--stickyOffset); }
+
+
+
+/* v2.4: highlight rows selected for compare */
+tr.resRow.isCompared td{
+  background: rgba(120,160,255,.08) !important;
+}
+tr.resRow.isCompared td:first-child{
+  box-shadow: inset 3px 0 0 rgba(120,160,255,.35);
+}
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
     <div class="brand">
-      <h1>NodeLab v2 <span class="muted small">• standalone</span></h1>
+      <h1>NodeLab v2.4.1 <span class="muted small">• standalone</span></h1>
       <div class="sub">ShotMarker-first session analysis for 1000-yard reality. Vertical is king; velocity is context. NodeLab explains — you decide.</div>
     </div>
     <div class="headerTarget" aria-hidden="true" title="ShotMarker target">
@@ -566,14 +633,17 @@ const warn = (...a)=>{ if(DEBUG) warn(...a); };
 
 const MOA_MM_AT_1000Y = 265.94; // 10.47in * 25.4mm
 const state = {
-  version: "NodeLab v2 • Spec v1.0",
+  version: "NodeLab v2.4.1 • Spec v1.0",
   units: "moa", // moa|mm
   sessionName: "",
   shotmarkerFiles: [], // {id,name,rawText,targets:[...]}
   chronoFiles: [], // {id,name,ext,raw,shots:[{v,t,temp?}], stats:{}}
   targets: [], // flattened targets [{id,name,meta,shots:[...], scored:[...], shotCount,...}]
   pairings: {}, // targetId -> chronoId
-  results: null
+  results: null,
+  shooterNotes: {}, // targetId -> {text, updatedAt}
+  pins: [], // pinned targetIds ("lock contenders")
+  compareSel: [] // up to 3 targetIds for Compare strip
 };
 
 const els = {
@@ -620,6 +690,73 @@ function fmt(n, d=2){
 }
 
 function clamp(x,a,b){ return Math.max(a, Math.min(b,x)); }
+
+/* =========================
+   Time helpers (pairing suggestions)
+   ========================= */
+function timeToSec(t){
+  if(!t) return null;
+  const s = String(t).trim();
+  const m = s.match(/^(\d{1,2}):(\d{2})(?:\.(\d{1,3}))?$/);
+  if(!m) return null;
+  const mm = parseInt(m[1],10);
+  const ss = parseInt(m[2],10);
+  const frac = m[3] ? parseInt(m[3],10) / Math.pow(10, m[3].length) : 0;
+  return mm*60 + ss + frac;
+}
+function seriesTimeWindow(shots){
+  if(!shots || !shots.length) return null;
+  let mn=Infinity, mx=-Infinity, hits=0;
+  for(const sh of shots){
+    const v = timeToSec(sh.time);
+    if(v==null) continue;
+    hits++;
+    if(v<mn) mn=v;
+    if(v>mx) mx=v;
+  }
+  if(hits<3) return null;
+  return {min:mn, max:mx, mid:(mn+mx)/2, hits};
+}
+function chronoQuality(ch){
+  const vs = (ch?.shots||[]).map(s=>s.v_fps).filter(v=>isFinite(v));
+  const n = vs.length;
+  if(n<3) return {dot:"•", cls:"low", tip:"No usable velocity data"};
+  const sdev = sd(vs);
+  if(!isFinite(sdev)) return {dot:"•", cls:"low", tip:"No usable velocity data"};
+  if(n<8) return {dot:"◐", cls:"warn", tip:"Partial string — SD is shaky"};
+  return {dot:"●", cls:"good", tip:"SD usable"};
+}
+function suggestChronoForTarget(t, chronos){
+  // Best-effort: use time window overlap / midpoint distance. Falls back to shot-count match.
+  if(!t || !chronos || !chronos.length) return null;
+  const tw = seriesTimeWindow(t.scoredShots||t.shots||[]);
+  let best = null;
+  if(tw){
+    for(const c of chronos){
+      const cw = seriesTimeWindow(c.shots||[]);
+      if(!cw) continue;
+      // score overlap first, then midpoint proximity
+      const overlap = Math.max(0, Math.min(tw.max, cw.max) - Math.max(tw.min, cw.min));
+      const midDist = Math.abs(tw.mid - cw.mid);
+      const score = (overlap>0 ? 1000+overlap : 0) - midDist; // overlap dominates
+      if(!best || score>best.score) best = {chrono:c, score, why:"timestamps"};
+    }
+  }
+  if(best) return best;
+  // fallback: closest shot count
+  const tn = (t.scoredShots||[]).length;
+  if(tn){
+    let b=null;
+    for(const c of chronos){
+      const cn = (c.shots||[]).length;
+      if(!cn) continue;
+      const d = Math.abs(cn-tn);
+      if(!b || d<b.d) b={chrono:c, d, why:"shot count"};
+    }
+    if(b) return {chrono:b.chrono, score:-b.d, why:"shot count"};
+  }
+  return null;
+}
 
 function mean(arr){
   if(!arr || !arr.length) return null;
@@ -1368,14 +1505,14 @@ function diagDetect(target, chrono){
   const v = disp.v_mm, h = disp.h_mm;
 
   if(n<10){
-    flags.push({key:"lowN", label:"Low sample size", tip:"Fewer than 10 scored shots — confidence reduced.", icon:"dot", severity:0.18});
+    flags.push({key:"lowN", cat:"sample", label:"Low sample size", tip:"Fewer than 10 scored shots — confidence reduced.", icon:"dot", severity:0.18});
   }
   if(isFinite(v) && isFinite(h)){
     if(v > h*1.35 && toUnits(v) > 0.25){
-      flags.push({key:"vert", label:"Vertical stringing", tip:"Vertical dispersion dominates — check velocity, cadence, barrel state, or condition.", icon:"vert", severity:0.10});
+      flags.push({key:"vert", label:"Vertical stringing", tip:"Vertical dispersion dominates — check velocity, cadence, barrel state, or condition.", icon:"vert", severity:0.10, cat:"vertical"});
     }
     if(h > v*1.25 && toUnits(h) > 0.25){
-      flags.push({key:"horiz", label:"Horizontal bias", tip:"Horizontal dispersion dominates — wind call or technique likely.", icon:"horiz", severity:0.08});
+      flags.push({key:"horiz", label:"Horizontal bias", tip:"Horizontal dispersion dominates — wind call or technique likely.", icon:"horiz", severity:0.08, cat:"horizontal"});
     }
   }
 
@@ -1384,7 +1521,7 @@ function diagDetect(target, chrono){
     const pts = shots.map(s=>[s.x_mm,s.y_mm]).filter(p=>isFinite(p[0])&&isFinite(p[1]));
     const tg = twoGroupHeuristic(pts);
     if(tg){
-      flags.push({key:"two", label:"Two-group pattern", tip:"Distinct clusters detected — check seating, hold, or a condition change.", icon:"two", severity:0.12});
+      flags.push({key:"two", label:"Two-group pattern", tip:"Distinct clusters detected — check seating, hold, or a condition change.", icon:"two", severity:0.12, cat:"structure"});
     }
   }
 
@@ -1394,9 +1531,9 @@ function diagDetect(target, chrono){
     const sdev = sd(vs);
     const espan = es(vs);
     if(isFinite(sdev) && sdev >= 18){
-      flags.push({key:"vout", label:"Velocity outliers", tip:"Chrono shows inconsistent velocities for this string.", icon:"speed", severity:0.10});
+      flags.push({key:"vout", label:"Velocity outliers", tip:"Chrono shows inconsistent velocities for this string.", icon:"speed", severity:0.10, cat:"velocity"});
     } else if(isFinite(espan) && espan >= 55){
-      flags.push({key:"vout2", label:"Velocity outliers", tip:"Chrono extreme spread is elevated for this string.", icon:"speed", severity:0.08});
+      flags.push({key:"vout2", label:"Velocity outliers", tip:"Chrono extreme spread is elevated for this string.", icon:"speed", severity:0.08, cat:"velocity"});
     }
   }
 
@@ -1406,7 +1543,7 @@ function diagDetect(target, chrono){
     const idx = ys.map((_,i)=>i+1);
     const r = corr(idx, ys);
     if(r!=null && Math.abs(r)>=0.62){
-      flags.push({key:"walk", label:"Vertical walk over time", tip:"Point of impact trends vertically across the string. Often condition, cadence, or barrel state related.", icon:"walk", severity:0.10});
+      flags.push({key:"walk", label:"Vertical walk over time", tip:"Point of impact trends vertically across the string. Often condition, cadence, or barrel state related.", icon:"walk", severity:0.10, cat:"vertical"});
     }
   }
 
@@ -1418,7 +1555,7 @@ function diagDetect(target, chrono){
     if(k>=8){
       const rtv = corr(temps.slice(0,k), vels.slice(0,k));
       if(rtv!=null && Math.abs(rtv)>=0.60){
-        flags.push({key:"temp", label:"Temperature drift note", tip:"Velocity change correlates with recorded temperature. Environmental influence likely.", icon:"temp", severity:0.00});
+        flags.push({key:"temp", label:"Temperature drift note", tip:"Velocity change correlates with recorded temperature. Environmental influence likely.", icon:"temp", severity:0.00, cat:"velocity"});
       }
     }
   }
@@ -1512,7 +1649,29 @@ function iconSvg(kind){
   if(kind==="speed") return `<svg viewBox="0 0 24 24" ${common}><path d="M20 13a8 8 0 1 1-16 0"/><path d="M12 13l3-3"/><path d="M12 3v2"/></svg>`;
   if(kind==="walk") return `<svg viewBox="0 0 24 24" ${common}><path d="M6 17c2-6 4 6 6 0s4 6 6 0"/><path d="M12 3v4"/><path d="M10 5h4"/></svg>`;
   if(kind==="temp") return `<svg viewBox="0 0 24 24" ${common}><path d="M10 14a2 2 0 1 0 4 0"/><path d="M12 2v10"/><path d="M12 22a5 5 0 0 0 3-9V6a3 3 0 0 0-6 0v7a5 5 0 0 0 3 9z"/></svg>`;
+  if(kind==="note") return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8"/><path d="M8 17h8"/><path d="M8 9h2"/></svg>`;
   return `<svg viewBox="0 0 24 24" ${common}><circle cx="12" cy="12" r="3"/></svg>`;
+
+function updateRowNoteIcon(tid, hasText){
+  try{
+    const row = document.querySelector(`tr.resRow[data-target="${tid}"]`);
+    if(!row) return;
+    const existing = row.querySelector(".noteIco");
+    if(hasText){
+      if(existing) return;
+      const nameWrap = row.querySelector("td:nth-child(2) div");
+      if(!nameWrap) return;
+      const span = document.createElement("span");
+      span.className = "ico low toolt noteIco";
+      span.setAttribute("data-tip","Has shooter notes");
+      span.innerHTML = iconSvg("note");
+      nameWrap.appendChild(span);
+    }else{
+      if(existing) existing.remove();
+    }
+  }catch(_e){}
+}
+
 }
 
 function render(){
@@ -1605,6 +1764,7 @@ function renderPairMatrix(){
     const rowWarn = pairingWarnText(t);
     const pairedId = state.pairings[t.id] || "";
     const pairedChrono = pairedId ? chronos.find(c=>c.id===pairedId) : null;
+    const suggestion = (!pairedChrono) ? suggestChronoForTarget(t, chronos) : null;
 
     // Precompute mismatch note for selected option (if any)
     let mismatchNote = "";
@@ -1621,6 +1781,7 @@ function renderPairMatrix(){
           <b>${escapeHtml(shortName(t.name,58))}</b>
           ${hasS? `<span class="chip low toolt" data-tip="Sighters detected; excluded from scoring.">Sighters</span>`:""}
           ${pairedChrono? `<span class="chip low toolt" data-tip="${escapeHtml(pairedChrono.name)}">Paired: ${escapeHtml(shortName(pairedChrono.name,34))}</span>` : ""}
+           ${(!pairedChrono && suggestion && suggestion.chrono)? `<span class="chip warn toolt" data-tip="Suggested by ${escapeHtml(suggestion.why)}">${escapeHtml("Suggest: " + shortName(suggestion.chrono.name,24))}</span>`:""}
         </div>
         <div class="muted small">${scoredN} scored • ${allN} total ${rowWarn? ` • <span class="warntext">${escapeHtml(rowWarn)}</span>`:""}</div>
       </td>
@@ -1725,19 +1886,35 @@ function renderResults(){
     return;
   }
   const rows = state.results.rows;
+  const pinnedSet = new Set(state.pins || []);
+  const rankMap = new Map();
+  rows.forEach((r,i)=>rankMap.set(r.targetId, i+1));
+  const compareSet = new Set(((state.compareSel||[]).slice(0,3)));
+
+  const pinned = rows.filter(r=>pinnedSet.has(r.targetId));
+  const unpinned = rows.filter(r=>!pinnedSet.has(r.targetId));
+  const displayRows = [...pinned, ...unpinned];
   const unitLabel = (state.units==="mm") ? "mm @ 1000y" : "MOA @ 1000y";
   const vKey = (state.units==="mm") ? "v_mm" : "v_moa";
   // table
   let html = `
     <div class="row" style="justify-content:space-between;gap:12px;margin-bottom:10px">
-      <div class="muted small">Ranked by <b>vertical dispersion</b> (${unitLabel}). Click a row to expand details.</div>
-      <div class="muted small mono">Generated ${new Date(state.results.generatedAt).toLocaleString()}</div>
+      <div class="muted small">Ranked by <b>vertical dispersion</b> (${unitLabel}). <span class="toolt" data-tip="Ties break by overall dispersion (not velocity).">Why #1 is #1</span>. Click a row to expand details.</div>
+      <div class="row" style="gap:8px;align-items:center">
+        <button class="btn sm toolt" id="btnClearCompare" data-tip="Clear compare selection">Clear compare</button>
+        <button class="btn sm toolt" id="btnClearPins" data-tip="Unpin all contenders">Clear pins</button>
+        <button class="btn sm toolt" id="btnShareReport" data-tip="Export a lightweight HTML report (ranking + notes)">Share report</button>
+        <button class="btn sm toolt" id="btnCollapseAll" data-tip="Collapse all expanded drilldowns">Collapse all</button>
+        <span class="muted small mono">Generated ${new Date(state.results.generatedAt).toLocaleString()}</span>
+      </div>
     </div>
-    <div class="tablewrap"><table>
+    <div id="compareBar" class="comparebar"></div><div class="tablewrap" id="resultsTableWrap"><table>
       <thead><tr>
         <th>#</th>
+        <th class="toolt" data-tip="Pin a contender to keep it at the top across re-runs.">Pin</th>
+        <th class="toolt" data-tip="Select up to 3 targets to compare side-by-side.">Compare</th>
         <th>Target</th>
-        <th>Vertical</th>
+        <th class="vKey toolt" data-tip="Primary ranking signal. Ties break by overall dispersion (not velocity).">Vertical</th>
         <th>Horizontal</th>
         <th class="toolt" data-tip="Shown as scored/total. Sighters are excluded from scoring.">Shots</th>
         <th>Velocity (context)</th>
@@ -1746,9 +1923,10 @@ function renderResults(){
       </tr></thead>
       <tbody>
   `;
-  rows.forEach((r, idx)=>{
+  displayRows.forEach((r, idx)=>{
     const v = toUnits(r.v_mm);
     const h = toUnits(r.h_mm);
+    const esr = toUnits(r.es_mm);
     const vel = (isFinite(r.vAvg) ? `${fmt(r.vAvg,1)} ± ${fmt(r.vSd,1)} fps` : "—");
     const conf = r.conf;
     const diagIcons = r.flags.map(f=>{
@@ -1759,12 +1937,20 @@ function renderResults(){
     const warnPair = (r.pairing && r.pairing.chronoId && r.pairing.chronoShots && r.n && Math.abs(r.pairing.chronoShots - r.n) >= 3)
       ? `<span class="chip warn toolt" data-tip="Shot count mismatch between scored shots and chrono shots. This does not change ranking; it’s a pairing sanity check.">Pair mismatch</span>`
       : "";
+    const noteText = (state.shooterNotes?.[r.targetId]?.text || "").trim();
+    const noteIco = noteText ? `<span class="ico low toolt noteIco" data-tip="Has shooter notes">${iconSvg("note")}</span>` : "";
     html += `
-      <tr class="resRow" data-target="${r.targetId}">
-        <td class="rank">${idx+1}</td>
+      <tr class="resRow ${compareSet.has(r.targetId)? "isCompared":""}" data-target="${r.targetId}">
+        <td class="rank">${rankMap.get(r.targetId) || (idx+1)}</td>
+        <td>
+          ${(()=>{const on=pinnedSet.has(r.targetId); return `<span class="ico ${on? "good":"low"} toolt pinIco" data-action="pin" data-target="${r.targetId}" data-tip="${on? "Pinned contender (stays on top)":"Pin contender (lock to top)"}">${iconSvg("pin")}</span>`;})()}
+        </td>
+        <td>
+          ${(()=>{const checked=(state.compareSel||[]).includes(r.targetId); return `<input class="cb compareCb" type="checkbox" data-action="compare" data-target="${r.targetId}" ${checked? "checked":""} title="Compare">`;})()}
+        </td>
         <td>
           <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-            <b>${escapeHtml(shortName(r.targetName,64))}</b> ${sighterNote} ${warnPair}
+            <b>${escapeHtml(shortName(r.targetName,64))}</b> ${noteIco} ${sighterNote} ${warnPair}
           </div>
           <div class="muted small">${escapeHtml(r.pairing.chronoName || "Unpaired")} </div>
         </td>
@@ -1772,23 +1958,188 @@ function renderResults(){
         <td>${isFinite(h)? fmt(h,3):"—"}</td>
         <td class="mono toolt" data-tip="Scored shots exclude sighters.">${r.n}/${r.nAll}</td>
         <td class="mono">${escapeHtml(vel)}</td>
-        <td><span class="chip ${conf.cls} toolt" data-tip="${confTip(conf.band)}">${conf.band}</span></td>
+        <td><span class="chip ${conf.cls} toolt" data-tip="${escapeHtml(`${confTip(conf.band)} • ${Math.round((conf.score||0)*100)}% • n=${r.n}${(r.n<10)? " • low-N":""}`)}">${conf.band}</span></td>
         <td><div class="icons">${diagIcons || `<span class="muted small">—</span>`}</div></td>
       </tr>
       <tr class="resDetail" data-detail="${r.targetId}" style="display:none;background:rgba(0,0,0,.10)">
-        <td colspan="8">
+        <td colspan="10">
           ${renderDetail(r)}
         </td>
       </tr>
     `;
   });
   html += `</tbody></table></div>`;
+  // Hook up pin / compare controls (must be after HTML insert)
   els.resultsArea.innerHTML = html;
 
+  const compareBar = els.resultsArea.querySelector('#compareBar');
+  const updateCompareBar = ()=>{
+      if(!compareBar) return;
+      const sel = (state.compareSel||[]).slice(0,3);
+      const tw = document.getElementById("resultsTableWrap");
+
+      if(sel.length===0){
+        compareBar.classList.remove("show");
+        if(tw) tw.classList.remove("hasCompare");
+        compareBar.innerHTML = '';
+        return;
+      }
+
+      compareBar.classList.add("show");
+      if(tw) tw.classList.add("hasCompare");
+
+      const colObjs = sel.map(tid=>{
+        const r = rows.find(x=>x.targetId===tid);
+        if(!r) return null;
+        const v = isFinite(r.v_mm) ? fmt(toUnits(r.v_mm),3) : "—";
+        const h = isFinite(r.h_mm) ? fmt(toUnits(r.h_mm),3) : "—";
+        const es = isFinite(r.es_mm) ? fmt(toUnits(r.es_mm),3) : "—";
+        const vel = (isFinite(r.vAvg) ? `${fmt(r.vAvg,1)} ± ${fmt(r.vSd,1)} fps` : '—');
+        const note = (state.shooterNotes?.[tid]?.text||'').trim().split(/\n+/)[0] || '';
+        const confPct = Math.round((r.conf?.score||0)*100);
+        const diagIcons = (r.flags||[]).map(f=>{
+          const cls = f.key==="temp" ? "low" : (f.severity>=0.12 ? "warn" : "low");
+          return `<span class="ico ${cls} toolt" data-tip="${escapeHtml(f.tip)}">${iconSvg(f.icon)}</span>`;
+        }).join("") || "—";
+        return { tid, r, v, h, es, vel, note, confPct, diagIcons };
+      }).filter(Boolean);
+
+      const colsN = colObjs.length;
+      const gridCols = `190px repeat(${colsN}, minmax(220px, 1fr))`;
+
+      const headCells = colObjs.map((o,i)=>{
+        const rank = rankMap.get(o.tid) || "?";
+        return `<div class="cgCell cgHead" style="min-width:0">
+          <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start">
+            <div style="min-width:0">
+              <div style="display:flex;gap:10px;align-items:baseline;justify-content:space-between">
+                <div style="font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(shortName(o.r.targetName,42))}</div>
+                <div class="mono muted small">#${rank}</div>
+              </div>
+              <div class="muted small mono" style="margin-top:6px">${escapeHtml(o.r.pairing?.chronoName || "")}</div>
+            </div>
+            <button class="btn sm danger toolt btnRemoveCompare" data-tid="${escapeHtml(o.tid)}" data-tip="Remove from compare" style="padding:6px 9px;border-radius:999px">✕</button>
+          </div>
+        </div>`;
+      }).join("");
+
+      const row = (label, valuesHtml)=> `<div class="cgCell cgLabel muted">${label}</div>${valuesHtml}`;
+
+      const vRow = row("Vertical ("+ (state.units==="mm"?"mm":"MOA")+" @ 1000y)", colObjs.map(o=>`<div class="cgCell mono">${o.v}</div>`).join(""));
+      const hRow = row("Horizontal", colObjs.map(o=>`<div class="cgCell mono">${o.h}</div>`).join(""));
+      const esRow = row("Radial ES (approx)", colObjs.map(o=>`<div class="cgCell mono">${o.es}</div>`).join(""));
+      const sRow = row("Shots (scored/total)", colObjs.map(o=>`<div class="cgCell mono">${o.r.n}/${o.r.nAll}</div>`).join(""));
+      const cRow = row("Confidence", colObjs.map(o=>`<div class="cgCell"><span class="mono">${o.confPct}%</span> • ${escapeHtml(o.r.conf?.band||"—")}</div>`).join(""));
+      const velRow = row("Velocity (context)", colObjs.map(o=>`<div class="cgCell mono">${escapeHtml(o.vel)}</div>`).join(""));
+      const dRow = row("Diagnostics", colObjs.map(o=>`<div class="cgCell">${o.diagIcons}</div>`).join(""));
+      const nRow = row("Note (first line)", colObjs.map(o=>`<div class="cgCell">${o.note ? escapeHtml(shortName(o.note,120)) : "—"}</div>`).join(""));
+
+      compareBar.innerHTML = `
+        <div style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap">
+          <div class="row" style="gap:10px;align-items:baseline">
+            <div style="font-weight:850;font-size:18px">Compare <span class="muted">(${sel.length}/3)</span></div>
+            <div class="muted">Side-by-side scan (no math changes).</div>
+          </div>
+          <div class="row" style="gap:8px">
+            <button class="btn sm toolt" id="btnSwapCompare" data-tip="Swap order (A↔B when 2 selected)">↔</button>
+            <button class="btn sm toolt" id="btnClearCompareTop" data-tip="Clear compare selection">🗙 Clear</button>
+          </div>
+        </div>
+
+        <div class="compareGrid" style="margin-top:12px;display:grid;grid-template-columns:${gridCols};gap:10px;align-items:stretch">
+          <div class="cgCell cgLabel muted"></div>
+          ${headCells}
+          ${vRow}
+          ${hRow}
+          ${esRow}
+          ${sRow}
+          ${cRow}
+          ${velRow}
+          ${dRow}
+          ${nRow}
+        </div>
+      `;
+
+      // swap & clear buttons
+      const btnSwap = compareBar.querySelector("#btnSwapCompare");
+      if(btnSwap) btnSwap.onclick = (e)=>{
+        e.preventDefault(); e.stopPropagation();
+        if(sel.length===2){
+          state.compareSel = [sel[1], sel[0]];
+          renderResults();
+        } else {
+          toast("Select exactly 2 to swap.");
+        }
+      };
+      const btnClearTop = compareBar.querySelector("#btnClearCompareTop");
+      if(btnClearTop) btnClearTop.onclick = (e)=>{ e.preventDefault(); e.stopPropagation(); state.compareSel=[]; renderResults(); };
+  compareBar.querySelectorAll('.btnRemoveCompare').forEach(btn=>{
+        btn.addEventListener('click',(e)=>{
+          e.preventDefault(); e.stopPropagation();
+          const tid = btn.getAttribute('data-tid');
+          state.compareSel = (state.compareSel||[]).filter(x=>x!==tid);
+          renderResults();
+        });
+      });
+    };
+    updateCompareBar();
+
+  // Compare selection (up to 3)
+  els.resultsArea.querySelectorAll('.compareCb').forEach(cb=>{
+    cb.addEventListener('click', (e)=>e.stopPropagation());
+    cb.addEventListener('change', (e)=>{
+      e.stopPropagation();
+      const tid = cb.getAttribute('data-target');
+      if(!tid) return;
+      if(cb.checked){
+        if(!(state.compareSel||[]).includes(tid)) state.compareSel.push(tid);
+        if(state.compareSel.length>3){
+          const removed = state.compareSel.shift();
+          const old = els.resultsArea.querySelector(`.compareCb[data-target="${removed}"]`);
+          if(old) old.checked = false;
+        }
+      }else{
+        state.compareSel = (state.compareSel||[]).filter(x=>x!==tid);
+      }
+      updateCompareBar();
+    });
+  });
+
+  // Pin controls
+  els.resultsArea.querySelectorAll('[data-action="pin"]').forEach(btn=>{
+    btn.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      const tid = btn.getAttribute('data-target');
+      if(!tid) return;
+      const s = new Set(state.pins||[]);
+      if(s.has(tid)) s.delete(tid); else s.add(tid);
+      state.pins = Array.from(s);
+      renderResults();
+    });
+  });
+
+  // Top buttons
+  const btnCC = els.resultsArea.querySelector('#btnClearCompare');
+  if(btnCC) btnCC.addEventListener('click', (e)=>{ e.stopPropagation(); state.compareSel=[]; renderResults(); });
+
+  const btnCP = els.resultsArea.querySelector('#btnClearPins');
+  if(btnCP) btnCP.addEventListener('click', (e)=>{ e.stopPropagation(); state.pins=[]; renderResults(); });
+
+  const btnSR = els.resultsArea.querySelector('#btnShareReport');
+  if(btnSR) btnSR.addEventListener('click', (e)=>{ e.stopPropagation(); exportShareReport(); });
+  const btnCollapse = els.resultsArea.querySelector('#btnCollapseAll');
+  if(btnCollapse) btnCollapse.addEventListener('click', (e)=>{
+    e.stopPropagation();
+    els.resultsArea.querySelectorAll('tr.resDetail').forEach(tr=>{ tr.style.display='none'; });
+  });
+
+
+  // Row expand/collapse (click anywhere else on the row)
   els.resultsArea.querySelectorAll(".resRow").forEach(row=>{
     row.addEventListener("click", ()=>{
       const tid = row.getAttribute("data-target");
       const det = els.resultsArea.querySelector(`tr.resDetail[data-detail="${tid}"]`);
+      if(!det) return;
       det.style.display = (det.style.display==="none" || !det.style.display) ? "table-row" : "none";
     });
   });
@@ -1800,6 +2151,60 @@ function confTip(band){
   return "Informational only. Don’t chase.";
 }
 
+
+
+
+function scoringZoneEval(r){
+  // Qualitative "Scoring Zone Probability" based on observed dispersion footprint vs scoring ring geometry.
+  // Uses F-Class LRFC ring sizes (800/900/1000) when range is unknown, assumes 1000y scale.
+  // r.es_mm is bounding-box diagonal; effective radius is es/2 (conservative, qualitative only).
+  const es = isFinite(r.es_mm) ? r.es_mm : null;
+  const effR = es ? (es/2) : null;
+
+  // Determine range (best effort). NodeLab uses 1000y scaling for mm/MOA display.
+  const ry = (state && (state.rangeYds || state.range || state.yds)) || 1000;
+
+  // NRA LRFC (F-Class center for LR target): X=5", 10=10", 9=20", etc. (diameters, inches)
+  // We'll treat "scoring zone" as the 10-ring by default.
+  const tenDiamIn = (ry>=750) ? 10.0 : (ry>=550 ? 6.0 : (ry>=450 ? 5.0 : 2.85)); // fallback by distance bands
+  const xDiamIn   = (ry>=750) ? 5.0  : (ry>=550 ? 3.0 : (ry>=450 ? 2.5 : 1.42));
+
+  const inToMm = 25.4;
+  const tenR = (tenDiamIn*inToMm)/2;
+  const xR   = (xDiamIn*inToMm)/2;
+
+  if(!effR){
+    return {band:"Low", cls:"low", headline:"Informational only.", why:"Not enough data to estimate dispersion footprint.", tenR, xR, effR:null};
+  }
+
+  // qualitative thresholds
+  const hiCut = 0.75 * tenR;
+  const modCut = 1.05 * tenR;
+
+  let band="Low", cls="low", headline="Informational only.", why="";
+  if(effR <= hiCut){
+    band="High"; cls="good"; headline="Forgiving in the scoring zone.";
+    why="Observed dispersion stays comfortably inside the scoring zone at this range.";
+  }else if(effR <= modCut){
+    band="Moderate"; cls="warn"; headline="Usable, but edge-sensitive.";
+    why="Dispersion overlaps the scoring zone edge. Confirm before acting.";
+  }else{
+    band="Low"; cls="low"; headline="Informational only.";
+    why="Dispersion spends significant time outside the scoring zone. Don’t chase.";
+  }
+
+  // Add a gentle note if the footprint is inside 10 but outside X
+  let nuance = "";
+  if(effR <= tenR && effR > xR){
+    nuance = "Likely holds 10-ring more often than X-ring.";
+  }else if(effR <= xR){
+    nuance = "Footprint is within the X-ring envelope on calm days.";
+  }else if(effR > tenR){
+    nuance = "Outside the 10-ring envelope unless conditions are perfect.";
+  }
+
+  return {band, cls, headline, why, nuance, tenR, xR, effR};
+}
 
 function getRunReadiness(){
   // Returns {ready:boolean, reason:string}
@@ -1839,7 +2244,13 @@ function renderDetail(r){
   const v = toUnits(r.v_mm);
   const h = toUnits(r.h_mm);
   const esv = toUnits(r.es_mm);
-  const flags = r.flags.map(f=>`<div class="muted small" style="margin:4px 0"><b>${escapeHtml(f.label)}:</b> ${escapeHtml(f.tip)}</div>`).join("");
+  const ordered = (r.flags||[]).slice().sort((a,b)=>{
+    const order = {vertical:0,horizontal:1,structure:2,velocity:3,sample:4};
+    const oa = order[a.cat] ?? 9;
+    const ob = order[b.cat] ?? 9;
+    return oa-ob;
+  });
+  const flags = ordered.map(f=>`<div class="muted small" style="margin:4px 0"><b>${escapeHtml(f.label)}:</b> ${escapeHtml(f.tip)}</div>`).join("");
   const lines = [];
   lines.push(`<div class="row" style="justify-content:space-between;gap:12px;align-items:flex-start">
     <div>
@@ -1854,7 +2265,7 @@ function renderDetail(r){
   </div>`);
 
   lines.push(`<div class="hr"></div>`);
-  lines.push(`<div class="split">
+  lines.push(`<div class="split drillSplit">
     <div class="note">
       <div class="muted small">Dispersion (${unitLabel})</div>
       <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:8px">
@@ -1865,9 +2276,35 @@ function renderDetail(r){
       <div style="margin-top:8px" class="muted small">Shots: <span class="mono">${r.n}</span> scored (${r.nAll} total)</div>
     </div>
     <div class="note">
+      
+      <div style="margin-top:10px">
+        <details>
+          <summary>Confidence inputs</summary>
+          <div class="inner">
+            <div class="muted small">Transparency view — ranking math is unchanged.</div>
+            <div style="margin-top:8px" class="mono">
+              Scored shots: <b>${r.nScored}</b> (of ${r.nAll})<br/>
+              Base ramp: clamp((n−5)/10,0..1) × 0.75 → <b>${fmt(clamp((r.nScored-5)/10,0,1)*0.75,3)}</b><br/>
+              Flag penalty: <b>${fmt(r.flags.reduce((s,f)=>s+(f.severity||0.12),0),3)}</b><br/>
+              Final confidence score: <b>${fmt(r.conf.score,3)}</b>
+            </div>
+          </div>
+        </details>
+      </div>
+
+      <div style="margin-top:10px">
+        <details open>
+          <summary>Shooter notes</summary>
+          <div class="inner">
+            <textarea class="input noteArea" data-note-tid="${escapeHtml(r.targetId)}" rows="4" placeholder="Wind, mirage, hold, ammo lot, anything you want to remember…">${escapeHtml((state.shooterNotes?.[r.targetId]?.text)||"")}</textarea>
+            <div class="noteStamp muted small" style="margin-top:6px">${state.shooterNotes?.[r.targetId]?.updatedAt ? ("Last updated: " + new Date(state.shooterNotes[r.targetId].updatedAt).toLocaleString()) : "Notes are saved in-session and included in Export .json."}</div>
+          </div>
+        </details>
+      </div>
+
       <div class="muted small">Velocity (context)</div>
       <div style="margin-top:8px" class="mono">${isFinite(r.vAvg)? `avg ${fmt(r.vAvg,1)} fps • SD ${fmt(r.vSd,1)} fps` : "—"}</div>
-      <div style="margin-top:8px" class="muted small">NodeLab does not rank by velocity. Use this to explain vertical, not to chase speed.</div>
+      <div style="margin-top:8px" class="muted small">Displayed for awareness only. Ranking is dispersion-first.</div>
       <div style="margin-top:10px">
         <details>
           <summary>Show diagnostic explanations</summary>
@@ -1880,6 +2317,130 @@ function renderDetail(r){
   return lines.join("");
 }
 
+
+function exportShareReport(){
+  if(!state.results || !state.results.rows || !state.results.rows.length){
+    toast("No results to share yet.");
+    return;
+  }
+  const rows = state.results.rows;
+  const pinnedSet = new Set(state.pins || []);
+  const rankMap = new Map(); rows.forEach((r,i)=>rankMap.set(r.targetId, i+1));
+  const selCompare = (state.compareSel||[]).slice(0,3);
+  const unitLabel = (state.units==="mm") ? "mm @ 1000y" : "MOA @ 1000y";
+  const toU = (mm)=> (state.units==="mm" ? mm : (mm / MOA_MM_AT_1000Y));
+
+  const esc = (s)=>escapeHtml(String(s||""));
+  const fmt3 = (v)=> isFinite(v) ? fmt(v,3) : "—";
+  const velStr = (r)=> (isFinite(r.vAvg) ? `${fmt(r.vAvg,1)} ± ${fmt(r.vSd,1)} fps` : "—");
+  const firstLine = (tid)=>{
+    const t = (state.shooterNotes?.[tid]?.text||"").trim();
+    return t ? t.split(/\n+/)[0] : "";
+  };
+
+  const pinnedRows = rows.filter(r=>pinnedSet.has(r.targetId));
+
+  const topRows = rows.slice(0, Math.min(8, rows.length));
+  const compareRows = selCompare.map(tid=>rows.find(r=>r.targetId===tid)).filter(Boolean);
+
+  const rowToTr = (r)=> {
+    const v = toU(r.v_mm), h = toU(r.h_mm), esr = toU(r.es_mm);
+    const confPct = Math.round((r.conf?.score||0)*100);
+    const diag = (r.flags||[]).map(f=>f.key).join(", ");
+    const note = firstLine(r.targetId);
+    return `<tr>
+      <td class="mono">${rankMap.get(r.targetId)||""}</td>
+      <td>${esc(r.targetName)}</td>
+      <td class="mono">${fmt3(v)}</td>
+      <td class="mono">${fmt3(h)}</td>
+      <td class="mono">${fmt3(esr)}</td>
+      <td class="mono">${r.n}/${r.nAll}</td>
+      <td class="mono">${esc(velStr(r))}</td>
+      <td class="mono">${confPct}% (${esc(r.conf?.band||"—")})</td>
+      <td>${esc(diag||"—")}</td>
+      <td>${esc(note||"")}</td>
+    </tr>`;
+  };
+
+  const html = `<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${esc(state.sessionName||"NodeLab Share Report")}</title>
+<style>
+  body{font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial; margin:24px; color:#111;}
+  h1{margin:0 0 6px 0;font-size:22px}
+  .sub{color:#444;margin-bottom:14px}
+  .pill{display:inline-block;padding:2px 8px;border:1px solid #bbb;border-radius:999px;font-size:12px;margin-right:6px}
+  table{border-collapse:collapse;width:100%;font-size:12px}
+  th,td{border:1px solid #ddd;padding:6px 8px;vertical-align:top}
+  th{background:#f6f6f6;text-align:left}
+  .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace}
+  .section{margin-top:18px}
+
+</style></head>
+<body>
+  <h1>${esc(state.sessionName||"NodeLab Report")}</h1>
+  <div class="sub">
+    <span class="pill">Units: ${esc(unitLabel)}</span>
+    <span class="pill">Ranking: vertical dispersion first</span>
+    <span class="pill">Sighters excluded</span>
+    <span class="pill">Generated: ${esc(new Date(state.results.generatedAt).toLocaleString())}</span>
+  </div>
+
+  
+  ${pinnedRows.length ? `
+  <div class="section">
+    <h2 style="font-size:16px;margin:0 0 8px 0">Pinned contenders (${pinnedRows.length})</h2>
+    <table>
+      <thead><tr>
+        <th>#</th><th>Target</th><th>Vertical</th><th>Horizontal</th><th>Radial ES</th><th>Shots</th><th>Velocity (context)</th><th>Confidence</th><th>Diagnostics</th><th>Note</th>
+      </tr></thead>
+      <tbody>
+        ${pinnedRows.map(rowToTr).join("")}
+      </tbody>
+    </table>
+  </div>` : ``}
+
+${compareRows.length ? `
+  <div class="section">
+    <h2 style="font-size:16px;margin:0 0 8px 0">Compare (${compareRows.length}/3)</h2>
+    <table>
+      <thead><tr>
+        <th>#</th><th>Target</th><th>Vertical</th><th>Horizontal</th><th>Radial ES</th><th>Shots</th><th>Velocity (context)</th><th>Confidence</th><th>Diagnostics</th><th>Note</th>
+      </tr></thead>
+      <tbody>${compareRows.map(rowToTr).join("")}</tbody>
+    </table>
+  </div>` : ""}
+
+  <div class="section">
+    <h2 style="font-size:16px;margin:0 0 8px 0">Top results</h2>
+    <table>
+      <thead><tr>
+        <th>#</th><th>Target</th><th>Vertical</th><th>Horizontal</th><th>Radial ES</th><th>Shots</th><th>Velocity (context)</th><th>Confidence</th><th>Diagnostics</th><th>Note</th>
+      </tr></thead>
+      <tbody>${topRows.map(rowToTr).join("")}</tbody>
+    </table>
+  </div>
+
+  <div class="section" style="color:#555;font-size:12px;margin-top:18px">
+    Exported from NodeLab (standalone). NodeLab explains — you decide.
+  </div>
+</body></html>`;
+
+  const blob = new Blob([html], {type:"text/html"});
+  const a = document.createElement("a");
+  const d = new Date();
+  const pad = (n)=>String(n).padStart(2,"0");
+  const fn = `NodeLab_Share_${pad(d.getFullYear())}-${pad(d.getMonth()+1)}-${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}.html`;
+  a.href = URL.createObjectURL(blob);
+  a.download = fn;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+  toast("Share report exported");
+}
+
+
 /* =========================
    Export / Import
    ========================= */
@@ -1890,6 +2451,9 @@ function exportSession(){
     exportedAt: new Date().toISOString(),
     units: state.units,
     sessionName: state.sessionName,
+    ranking_basis: "vertical_dispersion_first",
+    distance: "1000y",
+    scoring_rules: { sighters_excluded: true, sighter_tags: ["sighter"] },
     shotmarkerFiles: state.shotmarkerFiles.map(f=>({
       id:f.id, name:f.name, targets:f.targets
     })),
@@ -1897,7 +2461,11 @@ function exportSession(){
       id:c.id, name:c.name, shots:c.shots
     })),
     targets: state.targets,
-    pairings: state.pairings
+    pairings: state.pairings,
+    shooterNotes: state.shooterNotes || {},
+    pins: state.pins || [],
+    compareSel: state.compareSel || [],
+    results: state.results || null
   };
 
   const blob = new Blob([JSON.stringify(payload,null,2)], {type:"application/json"});
@@ -1934,6 +2502,10 @@ a.download = fname;
       state.chronoFiles = (obj.chronoFiles||[]).map(c=>({id:c.id||uid("ch"), name:c.name, shots:c.shots||[]}));
       state.targets = obj.targets || [];
       state.pairings = obj.pairings || {};
+      state.shooterNotes = obj.shooterNotes || {};
+      state.pins = Array.isArray(obj.pins) ? obj.pins : [];
+      state.compareSel = Array.isArray(obj.compareSel) ? obj.compareSel : [];
+      state.results = obj.results || null;
       // UI
       els.sessionName.value = state.sessionName || els.sessionName.value;
       setUnits(state.units);
@@ -1999,6 +2571,55 @@ els.importJson.addEventListener("change", (e)=>{
 els.sessionName.addEventListener("input", ()=>{
   state.sessionName = els.sessionName.value;
 });
+
+
+// Global helper: update tiny note icon in ranking rows (used by delegated note input handler)
+function updateRowNoteIcon(tid, hasText){
+  try{
+    const row = document.querySelector(`tr.resRow[data-target="${tid}"]`);
+    if(!row) return;
+    const existing = row.querySelector('.noteIco');
+    if(hasText){
+      if(existing) return;
+      // target name cell wrapper (contains name + icons)
+      const nameWrap = row.querySelector('td:nth-child(4) .nameWrap') || row.querySelector('td:nth-child(4) div') || row.querySelector('td:nth-child(2) div');
+      if(!nameWrap) return;
+      const span = document.createElement('span');
+      span.className = 'ico low toolt noteIco';
+      span.setAttribute('data-tip','Has shooter notes');
+      span.innerHTML = iconSvg('note');
+      nameWrap.appendChild(span);
+    }else{
+      if(existing) existing.remove();
+    }
+  }catch(_e){}
+}
+
+// Shooter notes: persist per-target notes in state + keep row icon in sync (no full re-render)
+document.addEventListener("input", (e)=>{
+  const ta = e.target;
+  if(!ta || !ta.classList || !ta.classList.contains("noteArea")) return;
+  const tid = ta.getAttribute("data-note-tid");
+  if(!tid) return;
+  const txt = (ta.value || "");
+  if(!state.shooterNotes) state.shooterNotes = {};
+  if(txt.trim()){
+    state.shooterNotes[tid] = { text: txt, updatedAt: Date.now() };
+  }else{
+    delete state.shooterNotes[tid];
+  }
+  // update the "last updated" line under the textarea
+  const stamp = ta.parentElement?.querySelector(".noteStamp");
+  if(stamp){
+    const rec = state.shooterNotes[tid];
+    stamp.textContent = rec?.updatedAt
+      ? ("Last updated: " + new Date(rec.updatedAt).toLocaleString())
+      : "Notes are saved in-session and included in Export .json.";
+  }
+  // update tiny note icon in ranking table without nuking the drilldown
+  updateRowNoteIcon(tid, !!txt.trim());
+});
+
 
 els.smFiles.addEventListener("change", async (e)=>{
   const files = Array.from(e.target.files||[]);
@@ -2074,4 +2695,3 @@ render();
 </script>
 </body>
 </html>
-
