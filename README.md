@@ -41,3 +41,12 @@ When opening an issue, include:
 - what file types you loaded (ShotMarker + chrono)
 - the on-screen warning/error text
 - a screenshot of Step 3 pairing + results
+
+## Snapshot Export Format
+
+NodeLab exports analysis results as versioned JSON snapshots for use with
+companion tools (e.g., BarrelTracker).
+
+The export contract is defined here:
+➡️ [SNAPSHOT_SPEC.md](SNAPSHOT_SPEC.md)
+
