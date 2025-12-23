@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>NodeLab v2.4.1 • Standalone</title>
+<title>NodeLab v2.4.3.2 • Standalone</title>
 <style>
   :root{
     --bg:#0b0f14;
@@ -479,7 +479,7 @@ tr.resRow.isCompared td:first-child{
 <div class="wrap">
   <header>
     <div class="brand">
-      <h1>NodeLab v2.4.1 <span class="muted small">• standalone</span></h1>
+      <h1>NodeLab v2.4.3.2 <span class="muted small">• standalone</span></h1>
       <div class="sub">ShotMarker-first session analysis for 1000-yard reality. Vertical is king; velocity is context. NodeLab explains — you decide.</div>
     </div>
     <div class="headerTarget" aria-hidden="true" title="ShotMarker target">
@@ -545,7 +545,7 @@ tr.resRow.isCompared td:first-child{
       <div class="hd">
         <div class="title">
           <h2>Step 1 — Load ShotMarker target files</h2>
-          <span class="badge" id="smCountBadge">0 loaded</span>
+          <span class="badge toolt" id="smCountBadge" data-tip="ShotMarker archive exports can contain multiple targets (strings). Each string is treated as one target.">0 files • 0 targets (strings)</span>
         </div>
         <div class="row">
           <label class="btn toolt" data-tip="Load one or more ShotMarker exported target logs (CSV/TSV).">
@@ -580,6 +580,7 @@ tr.resRow.isCompared td:first-child{
         <div class="title">
           <h2>Step 3 — Pair targets ↔ chrono (checkbox matrix)</h2>
           <span class="badge" id="pairBadge">0/0 paired</span>
+          <span class="badge toolt" id="pairCountWarn" style="display:none;margin-left:8px" data-tip="Expected one chrono file per target for 1:1 pairing.">⚠</span>
 <button class="btn sm" id="btnResetPairing" title="Clear all Step 3 pairings (does not reset files)">Reset pairing</button>
         </div>
         <div class="step-subhint" style="margin-top:6px;font-size:12px;color:rgba(255,255,255,.55);line-height:1.25;">Each target must be paired to exactly one chrono string.</div>
@@ -633,7 +634,7 @@ const warn = (...a)=>{ if(DEBUG) warn(...a); };
 
 const MOA_MM_AT_1000Y = 265.94; // 10.47in * 25.4mm
 const state = {
-  version: "NodeLab v2.4.1 • Spec v1.0",
+  version: "NodeLab v2.4.3.2 • Spec v1.0",
   units: "moa", // moa|mm
   sessionName: "",
   shotmarkerFiles: [], // {id,name,rawText,targets:[...]}
@@ -666,6 +667,7 @@ const els = {
   chCountBadge: document.getElementById("chCountBadge"),
   pairArea: document.getElementById("pairArea"),
   pairBadge: document.getElementById("pairBadge"),
+  pairCountWarn: document.getElementById("pairCountWarn"),
   btnRun: document.getElementById("btnRun"),
   runBadge: document.getElementById("runBadge"),
   runHint: document.getElementById("runHint"),
@@ -888,7 +890,7 @@ function parseShotMarkerText(text, filename){
       delim = detectDelim(line);
       const parts = splitCSV(line, delim);
       // common: leading empty col
-      if(parts.length === header.length+1 && parts[0]==="") parts.shift();
+      if(parts[0]==="" && parts.length>=header.length+1) parts.shift();
       if(parts.length >= header.length){
         const row = parts.slice(0, header.length);
 
@@ -902,9 +904,10 @@ function parseShotMarkerText(text, filename){
         const timeVal = idxTime>=0 ? String(row[idxTime]||"").trim() : "";
         const idVal   = idxId>=0 ? String(row[idxId]||"").trim() : "";
 
-        const timeOk = idxTime<0 ? true : (/^\d{1,2}:\d{2}(\.\d+)?$/.test(timeVal));
-        const idNum = parseInt(idVal,10);
-        const idOk = idxId<0 ? true : (Number.isFinite(idNum) && idNum>0);
+        // ShotMarker time formats vary ("07:03.4", "9:00.55 am", etc). Don't hard-reject on time.
+        const timeOk = idxTime<0 ? true : (timeVal.length>0);
+        // Accept numeric ids and sighter ids like S1, S2.
+        const idOk = idxId<0 ? true : (/^(s?\d+)$/i.test(idVal));
 
         let xyOk = true;
         if(idxXmm>=0){
@@ -944,7 +947,7 @@ function parseShotMarkerText(text, filename){
       for(let j=hi+1;j<lines.length;j++){
         const ln=lines[j].trim(); if(!ln) continue;
         const parts=splitCSV(ln, delim);
-        if(parts.length === header.length+1 && parts[0]==="") parts.shift();
+        if(parts[0]==="" && parts.length>=header.length+1) parts.shift();
         if(parts.length>=header.length) rows.push(parts.slice(0,header.length));
       }
       currentMeta = { rawLine: filename };
@@ -1191,12 +1194,14 @@ function concatU8(chunks){
   return out;
 }
 
-function biffParseFirstSheet(workbookU8){
-  // We'll parse workbook globals to get SST and first sheet BOF offset (via BOUNDSHEET)
-  let off=0;
-  const SST = [];
+function biffParseSheets(workbookU8){
+  // Parse BIFF8 .xls workbook stream and return all sheets as {name, rows}
+  // We support common Garmin-style exports (text + numbers), enough for chrono extraction.
+  let off = 0;
+
+  // Discover sheet offsets + names from globals
   let sstStrings = null;
-  let firstSheetOffset = null;
+  const sheets = []; // {name, offset}
 
   function readUnicodeString(pos, cch, flags){
     const is16 = (flags & 0x01)===0x01;
@@ -1220,15 +1225,14 @@ function biffParseFirstSheet(workbookU8){
     const rt = workbookU8[off] | (workbookU8[off+1]<<8);
     const rl = workbookU8[off+2] | (workbookU8[off+3]<<8);
     const ro = off + 4;
+
     if(rt===0x0085){ // BOUNDSHEET
       const sheetOff = workbookU8[ro] | (workbookU8[ro+1]<<8) | (workbookU8[ro+2]<<16) | (workbookU8[ro+3]<<24);
       const nameLen = workbookU8[ro+6];
       const nameFlags = workbookU8[ro+7];
       const {s} = readUnicodeString(ro+8, nameLen, nameFlags);
-      if(firstSheetOffset==null) firstSheetOffset = sheetOff;
+      sheets.push({name: s, offset: sheetOff});
     } else if(rt===0x00FC){ // SST
-      // parse shared strings table (subset, enough for typical exports)
-      const total = workbookU8[ro] | (workbookU8[ro+1]<<8) | (workbookU8[ro+2]<<16) | (workbookU8[ro+3]<<24);
       const unique = workbookU8[ro+4] | (workbookU8[ro+5]<<8) | (workbookU8[ro+6]<<16) | (workbookU8[ro+7]<<24);
       let p = ro+8;
       sstStrings = [];
@@ -1241,82 +1245,87 @@ function biffParseFirstSheet(workbookU8){
         if(hasRich){ rtRuns = workbookU8[p] | (workbookU8[p+1]<<8); p+=2; }
         if(hasExt){ extSz = workbookU8[p] | (workbookU8[p+1]<<8) | (workbookU8[p+2]<<16) | (workbookU8[p+3]<<24); p+=4; }
         const r = readUnicodeString(p, cch, flags); p=r.pos;
-        // skip rich text runs and ext data
         if(hasRich) p += rtRuns*4;
         if(hasExt) p += extSz;
         sstStrings.push(r.s);
       }
-    } else if(rt===0x000A){ // EOF
-      // end of globals BOF - but workbook may have more. We'll stop globals parse once we have sheet offset.
-      if(firstSheetOffset!=null) break;
+    } else if(rt===0x000A){ // EOF (end globals)
+      if(sheets.length) break;
     }
+
     off += 4 + rl;
     if(off>workbookU8.length) break;
   }
 
-  if(firstSheetOffset==null) throw new Error("No sheet offset found in .xls");
+  if(!sheets.length) throw new Error("No sheets found in .xls");
 
-  // Parse first sheet records, collecting rows as arrays of values.
-  let p = firstSheetOffset;
-  const cells = new Map(); // key "r,c" -> value
-  while(p + 4 <= workbookU8.length){
-    const rt = workbookU8[p] | (workbookU8[p+1]<<8);
-    const rl = workbookU8[p+2] | (workbookU8[p+3]<<8);
-    const ro = p + 4;
-    if(rt===0x000A){ // EOF
-      break;
-    }
-    if(rt===0x0203){ // NUMBER
-      const r = workbookU8[ro] | (workbookU8[ro+1]<<8);
-      const c = workbookU8[ro+2] | (workbookU8[ro+3]<<8);
-      // xf at ro+4..5
-      const dv = new DataView(workbookU8.buffer, workbookU8.byteOffset + ro + 6, 8);
-      const val = dv.getFloat64(0, true);
-      cells.set(r+","+c, val);
-    } else if(rt===0x00FD){ // LABELSST
-      const r = workbookU8[ro] | (workbookU8[ro+1]<<8);
-      const c = workbookU8[ro+2] | (workbookU8[ro+3]<<8);
-      const idx = workbookU8[ro+6] | (workbookU8[ro+7]<<8) | (workbookU8[ro+8]<<16) | (workbookU8[ro+9]<<24);
-      const s = (sstStrings && sstStrings[idx]!=null) ? sstStrings[idx] : ("SST#"+idx);
-      cells.set(r+","+c, s);
-    } else if(rt===0x027E){ // RK
-      const r = workbookU8[ro] | (workbookU8[ro+1]<<8);
-      const c = workbookU8[ro+2] | (workbookU8[ro+3]<<8);
-      const rk = workbookU8[ro+6] | (workbookU8[ro+7]<<8) | (workbookU8[ro+8]<<16) | (workbookU8[ro+9]<<24);
-      cells.set(r+","+c, decodeRK(rk));
-    } else if(rt===0x00BD){ // MULRK
-      const r = workbookU8[ro] | (workbookU8[ro+1]<<8);
-      let c1 = workbookU8[ro+2] | (workbookU8[ro+3]<<8);
-      const c2 = workbookU8[ro+rl-2] | (workbookU8[ro+rl-1]<<8);
-      let q = ro+4;
-      for(let c=c1;c<=c2;c++){
-        // xf at q..q+1, rk at q+2..q+5
-        const rk = workbookU8[q+2] | (workbookU8[q+3]<<8) | (workbookU8[q+4]<<16) | (workbookU8[q+5]<<24);
-        cells.set(r+","+c, decodeRK(rk));
-        q += 6;
+  function parseSheetAt(offset){
+    let p = offset;
+    const cells = new Map(); // "r,c" -> value
+    while(p + 4 <= workbookU8.length){
+      const rt = workbookU8[p] | (workbookU8[p+1]<<8);
+      const rl = workbookU8[p+2] | (workbookU8[p+3]<<8);
+      const ro = p + 4;
+      if(rt===0x000A){ // EOF
+        break;
       }
+      if(rt===0x0203){ // NUMBER
+        const r = workbookU8[ro] | (workbookU8[ro+1]<<8);
+        const c = workbookU8[ro+2] | (workbookU8[ro+3]<<8);
+        const dv = new DataView(workbookU8.buffer, workbookU8.byteOffset + ro + 6, 8);
+        const val = dv.getFloat64(0, true);
+        cells.set(r+","+c, val);
+      } else if(rt===0x00FD){ // LABELSST
+        const r = workbookU8[ro] | (workbookU8[ro+1]<<8);
+        const c = workbookU8[ro+2] | (workbookU8[ro+3]<<8);
+        const idx = workbookU8[ro+6] | (workbookU8[ro+7]<<8) | (workbookU8[ro+8]<<16) | (workbookU8[ro+9]<<24);
+        const s = (sstStrings && sstStrings[idx]!=null) ? sstStrings[idx] : ("SST#"+idx);
+        cells.set(r+","+c, s);
+      } else if(rt===0x027E){ // RK
+        const r = workbookU8[ro] | (workbookU8[ro+1]<<8);
+        const c = workbookU8[ro+2] | (workbookU8[ro+3]<<8);
+        const rk = workbookU8[ro+6] | (workbookU8[ro+7]<<8) | (workbookU8[ro+8]<<16) | (workbookU8[ro+9]<<24);
+        cells.set(r+","+c, decodeRK(rk));
+      } else if(rt===0x00BD){ // MULRK
+        const r = workbookU8[ro] | (workbookU8[ro+1]<<8);
+        const c2 = workbookU8[ro+rl-2] | (workbookU8[ro+rl-1]<<8);
+        let c1 = workbookU8[ro+2] | (workbookU8[ro+3]<<8);
+        let q = ro+4;
+        for(let c=c1;c<=c2;c++){
+          const rk = workbookU8[q+2] | (workbookU8[q+3]<<8) | (workbookU8[q+4]<<16) | (workbookU8[q+5]<<24);
+          cells.set(r+","+c, decodeRK(rk));
+          q += 6;
+        }
+      }
+      p += 4 + rl;
     }
-    p += 4 + rl;
+
+    let maxR=0, maxC=0;
+    for(const k of cells.keys()){
+      const [rs,cs]=k.split(","); const r=+rs,c=+cs;
+      if(r>maxR) maxR=r; if(c>maxC) maxC=c;
+    }
+    const rows = [];
+    for(let r=0;r<=maxR;r++){
+      const row = [];
+      let empty=true;
+      for(let c=0;c<=maxC;c++){
+        const v = cells.get(r+","+c);
+        row.push(v==null ? "" : v);
+        if(v!=="" && v!=null) empty=false;
+      }
+      if(!empty) rows.push(row);
+    }
+    return rows;
   }
 
-  // Convert to 2D array; find max row/col
-  let maxR=0, maxC=0;
-  for(const k of cells.keys()){
-    const [rs,cs]=k.split(","); const r=+rs,c=+cs;
-    if(r>maxR) maxR=r; if(c>maxC) maxC=c;
-  }
-  const rows = [];
-  for(let r=0;r<=maxR;r++){
-    const row = [];
-    let empty=true;
-    for(let c=0;c<=maxC;c++){
-      const v = cells.get(r+","+c);
-      row.push(v==null ? "" : v);
-      if(v!=="" && v!=null) empty=false;
-    }
-    if(!empty) rows.push(row);
-  }
-  return rows;
+  // Keep sheet order as encountered. Filter out sheets with no rows.
+  return sheets.map(s => ({name: s.name, rows: parseSheetAt(s.offset)})).filter(s => s.rows && s.rows.length);
+}
+
+function biffParseFirstSheet(workbookU8){
+  const sheets = biffParseSheets(workbookU8);
+  return sheets[0].rows;
 }
 
 function decodeRK(rk){
@@ -1356,8 +1365,14 @@ async function parseChronoFile(file){
   if(ext==="xls"){
     const ab = await readFileAsArrayBuffer(file);
     const wb = oleExtractStream(ab);
-    const rows = biffParseFirstSheet(wb);
-    return chronoRowsToShots(rows);
+    // Garmin "Sessions" exports often pack many sessions as separate sheets (tabs).
+    // Treat each sheet as a separate chrono string for 1:1 pairing.
+    const sheets = biffParseSheets(wb);
+    if(sheets.length > 1){
+      return sheets.map(s => ({ name: s.name, shots: chronoRowsToShots(s.rows) }))
+                   .filter(s => s.shots && s.shots.length);
+    }
+    return chronoRowsToShots(sheets[0].rows);
   }
   if(ext==="xlsx"){
     const ab = await readFileAsArrayBuffer(file);
@@ -1698,7 +1713,7 @@ function render(){
   els.sessState.textContent = hasData ? "Loaded" : "Empty";
 
   // Step1 list
-  els.smCountBadge.textContent = `${state.shotmarkerFiles.length} file${state.shotmarkerFiles.length===1?"":"s"} • ${totalTargets} targets`;
+  els.smCountBadge.textContent = `${state.shotmarkerFiles.length} file${state.shotmarkerFiles.length===1?"":"s"} • ${totalTargets} targets (strings)`;
   if(state.shotmarkerFiles.length===0){
     els.smList.textContent = "No ShotMarker files yet.";
   }else{
@@ -1742,7 +1757,17 @@ function renderPairMatrix(){
   const targets = state.targets;
   const chronos = state.chronoFiles;
   const paired = Object.keys(state.pairings).length;
-  els.pairBadge.textContent = `${paired}/${targets.length} paired`;
+  els.pairBadge.textContent = `Paired: ${paired}/${targets.length} targets${(targets.length>0 && paired===targets.length)?" ✓":""}`;
+  // Soft warning when target count differs from chrono file count (1:1 expected for match workflow)
+  const want = targets.length;
+  const have = chronos.length;
+  if(want>0 && have>0 && want!==have){
+    els.pairCountWarn.style.display = "inline-flex";
+    els.pairCountWarn.textContent = `⚠ Targets: ${want} • Chrono files: ${have}`;
+  }else{
+    els.pairCountWarn.style.display = "none";
+  }
+
 
   if(targets.length===0 || chronos.length===0){
     els.pairArea.textContent = "Load ShotMarker and chrono files to build the pairing selector.";
@@ -2651,10 +2676,22 @@ els.chFiles.addEventListener("change", async (e)=>{
   if(!files.length) return;
   for(const file of files){
     try{
-      const shots = await parseChronoFile(file);
-      const cObj = { id: uid("ch"), name: file.name, shots };
-      state.chronoFiles.push(cObj);
-      toast(`Loaded chrono: ${file.name}`);
+      const parsed = await parseChronoFile(file);
+      // parseChronoFile may return either an array of shots, or [{name,shots},...] for multi-sheet .xls
+      if(Array.isArray(parsed) && parsed.length && parsed[0] && typeof parsed[0] === "object" && ("shots" in parsed[0]) && ("name" in parsed[0])){
+        let n=0;
+        for(const s of parsed){
+          const cObj = { id: uid("ch"), name: `${file.name} • ${s.name}`, shots: s.shots };
+          state.chronoFiles.push(cObj);
+          n++;
+        }
+        toast(`Loaded chrono: ${file.name} (${n} strings)`);
+      } else {
+        const shots = parsed;
+        const cObj = { id: uid("ch"), name: file.name, shots };
+        state.chronoFiles.push(cObj);
+        toast(`Loaded chrono: ${file.name}`);
+      }
     }catch(err){
       console.error(err);
       toast(`Chrono parse failed: ${file.name} (${err.message})`);
