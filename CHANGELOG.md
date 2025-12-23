@@ -1,9 +1,23 @@
 # Changelog
 
-All notable changes to **NodeLab** will be documented in this file.
+All notable changes to **NodeLab** are documented here.
 
 NodeLab is a **single-file, fully standalone** browser tool: ShotMarker-first analysis for 1000-yard reality.
 Ranking is **vertical-first** (scored shots only); velocity is **context**.
+
+---
+
+## [v2.4.3] — 2025-12-23
+
+### Added
+- **Garmin Sessions `.xls` multi-sheet support**: each worksheet/tab is imported as its own chrono string (creates multiple chrono slots from one file).
+- Chrono loading UI now counts **strings** (not just files) when Garmin session workbooks are used.
+
+### Fixed
+- ShotMarker CSV parsing edge cases:
+  - Leading empty column + extra trailing field (e.g. `sim_t(...)`) no longer breaks column alignment.
+  - Mixed time formats (e.g. `9:00.55 am`) no longer prevent shot rows from being recognized.
+- Ensured multi-target ShotMarker archive exports correctly expand into **N targets (strings)**.
 
 ---
 
@@ -11,25 +25,17 @@ Ranking is **vertical-first** (scored shots only); velocity is **context**.
 
 ### Added
 - **Compare Grid (aligned, side-by-side)** for up to 3 targets (true metric alignment).
-- Compare grid now includes **Radial ES (approx)** and respects the unit toggle (MOA/mm @ 1000y).
-- **Share Report export** (lightweight HTML) upgraded:
-  - includes pinned contenders
-  - includes compare section (when selected)
-  - includes notes (when present)
-- **Collapse all drilldowns** control for faster scanning.
-- **Row-level “Shooter Notes” indicator** (tiny note icon) when notes exist.
+- Compare grid includes **Radial ES (approx)** and respects unit toggle (MOA/mm @ 1000y).
+- **Share Report export** (lightweight HTML) includes pinned contenders, compare section, and notes (when present).
+- **Collapse all drilldowns** control.
+- **Shooter notes** per target + row note icon indicator.
 
 ### Improved
-- Drilldown row now spans full table width (fixed `colspan` mismatch) and **uses right-side space properly**.
-- Compare UX hardened:
-  - compare controls don’t accidentally open drilldown
-  - remove-from-compare actions available directly in compare UI
-  - no sticky overlap / “covered checkbox” behavior
-- Consistent number formatting and cleaner compare presentation.
+- Drilldown uses right-side space properly and spans full table width.
 
 ### Fixed
-- Notes now reliably **persist through Export/Import**.
-- Eliminated multiple JS runtime issues discovered during live testing (duplicate bindings, undefined helper references, undefined variables in share rendering).
+- Multiple UI/runtime issues discovered during live testing (duplicate bindings, undefined helpers, share rendering variables).
+- Notes persist reliably through Export/Import.
 
 ---
 
