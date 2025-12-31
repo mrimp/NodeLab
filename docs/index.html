@@ -496,6 +496,7 @@ tr.resRow.isCompared td:first-child{
 
 /* NodeLab-style header */
 .suiteHeader{
+  width: 100%;
   display:flex; align-items:center; justify-content:space-between; gap:14px;
   padding: 12px 16px;
   border-radius: var(--suite-r-lg);
@@ -504,7 +505,7 @@ tr.resRow.isCompared td:first-child{
   background: linear-gradient(135deg, rgba(34,42,55,.65), rgba(25,33,40,.55));
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  margin: 12px 12px 16px;
+  margin: 0 0 16px;
 }
 
 .suiteHeader__topline{ display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; }
@@ -700,6 +701,8 @@ const MOA_MM_AT_1000Y = 265.94; // 10.47in * 25.4mm
 const state = {
   version: "NodeLab v2.4.3.2 • Spec v1.0",
   units: "moa", // moa|mm
+  realityMode: false, // 1000-yard reality weighting
+  realityWeights: { lowN: 0.18, flags: 0.30 },
   sessionName: "",
   shotmarkerFiles: [], // {id,name,rawText,targets:[...]}
   chronoFiles: [], // {id,name,ext,raw,shots:[{v,t,temp?}], stats:{}}
@@ -738,6 +741,10 @@ const els = {
   resultsArea: document.getElementById("resultsArea"),
   toast: document.getElementById("toast"),
 };
+
+// Load persisted UI prefs
+loadPrefs();
+
 
 function toast(msg){
   els.toast.textContent = msg;
@@ -1558,12 +1565,33 @@ function computeDispersionMM(shots){
   return {h_mm:h, v_mm:v, es_mm:esr};
 }
 
+function computeRobustnessMM(shots){
+  const ys = shots.map(s=>s.y_mm).filter(v=>isFinite(v)).slice().sort((a,b)=>a-b);
+  if(ys.length<6) return {score:null, band:"—", vTrim_mm:null, deltaPct:null};
+  const q = (p)=>{
+    const i = (ys.length-1)*p;
+    const lo = Math.floor(i), hi = Math.ceil(i);
+    if(lo===hi) return ys[lo];
+    const t=i-lo;
+    return ys[lo]*(1-t)+ys[hi]*t;
+  };
+  const p05=q(0.05), p95=q(0.95);
+  const vTrim = p95-p05;
+  const vFull = (Math.max(...ys)-Math.min(...ys));
+  const deltaPct = vFull>0 ? (vFull - vTrim)/vFull : 0;
+  const score = clamp(1 - deltaPct, 0, 1);
+  const band = (score>=0.85) ? "High" : (score>=0.70 ? "Moderate" : "Low");
+  return {score, band, vTrim_mm:vTrim, deltaPct};
+}
+
+
+
 function toUnits(val_mm){
   if(val_mm==null || !isFinite(val_mm)) return null;
   return state.units==="mm" ? val_mm : (val_mm / MOA_MM_AT_1000Y);
 }
 
-function confidenceBand(n, flags){
+function confidenceBand(n, flags, rob){
   // n-based base
   let score = 0;
   // ramp: <6 low, 6-10 moderate, >10 can reach high
@@ -1571,6 +1599,11 @@ function confidenceBand(n, flags){
   // penalty by flags
   const penalty = flags.reduce((s,f)=> s + (f.severity||0.12), 0);
   score = clamp(score - penalty, 0, 1);
+  // robustness penalty (trimmed vertical vs full)
+  if(rob && rob.score!=null){
+    if(rob.score < 0.70) score = clamp(score - 0.18, 0, 1);
+    else if(rob.score < 0.85) score = clamp(score - 0.08, 0, 1);
+  }
   if(score >= 0.62) return {band:"High", cls:"good", score};
   if(score >= 0.35) return {band:"Moderate", cls:"warn", score};
   return {band:"Low", cls:"low", score};
@@ -1688,8 +1721,9 @@ function runAnalysis(){
     const scored = t.scoredShots;
     totalScored += scored.length;
     const disp = computeDispersionMM(scored);
+    const rob = computeRobustnessMM(scored);
     const flags = diagDetect(t, chrono);
-    const conf = confidenceBand(scored.length, flags);
+    const conf = confidenceBand(scored.length, flags, rob);
     // velocity context from chrono (aligned, but keep independent)
     const vels = chrono?.shots?.map(s=>s.v_fps).filter(v=>isFinite(v)) || [];
     const vAvg = mean(vels), vSd = sd(vels);
@@ -1704,16 +1738,27 @@ function runAnalysis(){
       es_mm: disp.es_mm,
       vAvg, vSd,
       flags,
+      rob,
       conf,
       pairing: {chronoId: cid, chronoName: chrono?.name || null, chronoShots: chrono?.shots?.length || 0}
     });
   }
-  // sort by vertical (primary)
+  // sort by vertical (primary) with optional "Reality mode" weighting
   rows.sort((a,b)=>{
-    const av = a.v_mm ?? 1e18;
-    const bv = b.v_mm ?? 1e18;
+    const av0 = a.v_mm ?? 1e18;
+    const bv0 = b.v_mm ?? 1e18;
+    if(!state.realityMode){
+      if(av0!==bv0) return av0-bv0;
+      return (b.n||0)-(a.n||0);
+    }
+    // Reality mode: harsher penalties for low-N and diagnostic flags
+    const penA_n = clamp((10-(a.n||0))/10, 0, 1); // 0 when n>=10
+    const penB_n = clamp((10-(b.n||0))/10, 0, 1);
+    const sevA = (a.flags||[]).reduce((s,f)=> s + (f.severity||0.12), 0);
+    const sevB = (b.flags||[]).reduce((s,f)=> s + (f.severity||0.12), 0);
+    const av = av0 * (1 + (state.realityWeights?.lowN||0.18)*penA_n + (state.realityWeights?.flags||0.30)*sevA);
+    const bv = bv0 * (1 + (state.realityWeights?.lowN||0.18)*penB_n + (state.realityWeights?.flags||0.30)*sevB);
     if(av!==bv) return av-bv;
-    // secondary: more shots better
     return (b.n||0)-(a.n||0);
   });
   state.results = { rows, totalScored, generatedAt: new Date().toISOString() };
@@ -1990,6 +2035,8 @@ function renderResults(){
     <div class="row" style="justify-content:space-between;gap:12px;margin-bottom:10px">
       <div class="muted small">Ranked by <b>vertical dispersion</b> (${unitLabel}). <span class="toolt" data-tip="Ties break by overall dispersion (not velocity).">Why #1 is #1</span>. Click a row to expand details.</div>
       <div class="row" style="gap:8px;align-items:center">
+        <button class="btn sm toolt" id="btnResetView" data-tip="Reset view (mode, pins, compare, open rows)">Reset view</button>
+        <button class="btn sm toolt" id="btnReality" data-tip="Toggle 1000-yard reality weighting (vertical-first, harsher low-N penalty)">Reality mode: OFF</button>
         <button class="btn sm toolt" id="btnClearCompare" data-tip="Clear compare selection">Clear compare</button>
         <button class="btn sm toolt" id="btnClearPins" data-tip="Unpin all contenders">Clear pins</button>
         <button class="btn sm toolt" id="btnShareReport" data-tip="Export a lightweight HTML report (ranking + notes)">Share report</button>
@@ -1997,7 +2044,27 @@ function renderResults(){
         <span class="muted small mono">Generated ${new Date(state.results.generatedAt).toLocaleString()}</span>
       </div>
     </div>
-    <div id="compareBar" class="comparebar"></div><div class="tablewrap" id="resultsTableWrap"><table>
+    
+    <details class="note" style="margin:10px 0">
+      <summary>Advanced</summary>
+      <div class="inner">
+        <div class="muted small">These only affect <b>Reality mode</b> ranking penalties. Defaults are recommended.</div>
+        <div style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;margin-top:10px">
+          <label class="muted small">Low-N penalty</label>
+          <div class="row" style="gap:8px;align-items:center;justify-content:flex-end">
+            <input id="rwLowN" type="range" min="0" max="0.6" step="0.01" value="${state.realityWeights.lowN}">
+            <span id="rwLowNVal" class="mono small">${fmt(state.realityWeights.lowN,2)}</span>
+          </div>
+
+          <label class="muted small">Flag penalty</label>
+          <div class="row" style="gap:8px;align-items:center;justify-content:flex-end">
+            <input id="rwFlags" type="range" min="0" max="1.2" step="0.01" value="${state.realityWeights.flags}">
+            <span id="rwFlagsVal" class="mono small">${fmt(state.realityWeights.flags,2)}</span>
+          </div>
+        </div>
+      </div>
+    </details>
+<div id="compareBar" class="comparebar"></div><div class="tablewrap" id="resultsTableWrap"><table>
       <thead><tr>
         <th>#</th>
         <th class="toolt" data-tip="Pin a contender to keep it at the top across re-runs.">Pin</th>
@@ -2047,7 +2114,7 @@ function renderResults(){
         <td>${isFinite(h)? fmt(h,3):"—"}</td>
         <td class="mono toolt" data-tip="Scored shots exclude sighters.">${r.n}/${r.nAll}</td>
         <td class="mono">${escapeHtml(vel)}</td>
-        <td><span class="chip ${conf.cls} toolt" data-tip="${escapeHtml(`${confTip(conf.band)} • ${Math.round((conf.score||0)*100)}% • n=${r.n}${(r.n<10)? " • low-N":""}`)}">${conf.band}</span></td>
+        <td><span class="chip ${conf.cls} toolt" data-tip="${escapeHtml(confidenceExplain(r))}">${conf.band}</span></td>
         <td><div class="icons">${diagIcons || `<span class="muted small">—</span>`}</div></td>
       </tr>
       <tr class="resDetail" data-detail="${r.targetId}" style="display:none;background:rgba(0,0,0,.10)">
@@ -2214,6 +2281,64 @@ function renderResults(){
   const btnCP = els.resultsArea.querySelector('#btnClearPins');
   if(btnCP) btnCP.addEventListener('click', (e)=>{ e.stopPropagation(); state.pins=[]; renderResults(); });
 
+  // Phase 1: Reality mode toggle
+  const btnReality = els.resultsArea.querySelector('#btnReality');
+  els.btnReality = btnReality || null;
+  if(btnReality){
+    // set initial label/style
+    btnReality.classList.toggle("primary", !!state.realityMode);
+    btnReality.textContent = state.realityMode ? "Reality mode: ON" : "Reality mode: OFF";
+    btnReality.addEventListener('click', (e)=>{ e.stopPropagation(); setRealityMode(!state.realityMode); });
+  }
+
+  // Phase 1: Reset view (mode, pins, compare, open drilldowns)
+  const btnRV = els.resultsArea.querySelector('#btnResetView');
+  if(btnRV) btnRV.addEventListener('click', (e)=>{
+    e.stopPropagation();
+    state.pins = [];
+    state.compareSel = [];
+    setRealityMode(false);
+    // collapse all open <details>
+    els.resultsArea.querySelectorAll('details[open]').forEach(d=>{ d.open = false; });
+    renderResults();
+  });
+
+  // Phase 3: Advanced sliders (Reality mode penalties)
+  const rwLowN = els.resultsArea.querySelector('#rwLowN');
+  const rwFlags = els.resultsArea.querySelector('#rwFlags');
+  const rwLowNVal = els.resultsArea.querySelector('#rwLowNVal');
+  const rwFlagsVal = els.resultsArea.querySelector('#rwFlagsVal');
+
+  const syncAdv = ()=>{
+    if(rwLowNVal) rwLowNVal.textContent = fmt(state.realityWeights.lowN,2);
+    if(rwFlagsVal) rwFlagsVal.textContent = fmt(state.realityWeights.flags,2);
+  };
+  if(rwLowN){
+    rwLowN.addEventListener('input', ()=>{
+      state.realityWeights.lowN = clamp(parseFloat(rwLowN.value), 0, 0.6);
+      savePrefs();
+      syncAdv();
+      if(state.realityMode) renderResults();
+    });
+  }
+  if(rwFlags){
+    rwFlags.addEventListener('input', ()=>{
+      state.realityWeights.flags = clamp(parseFloat(rwFlags.value), 0, 1.2);
+      savePrefs();
+      syncAdv();
+      if(state.realityMode) renderResults();
+    });
+  }
+  syncAdv();
+  const btnRM = els.resultsArea.querySelector('#btnReality');
+  if(btnRM){
+    els.btnReality = btnRM;
+    // paint current state
+    btnRM.classList.toggle('primary', !!state.realityMode);
+    btnRM.textContent = state.realityMode ? 'Reality mode: ON' : 'Reality mode: OFF';
+    btnRM.addEventListener('click', (e)=>{ e.stopPropagation(); setRealityMode(!state.realityMode); renderResults(); });
+  }
+
   const btnSR = els.resultsArea.querySelector('#btnShareReport');
   if(btnSR) btnSR.addEventListener('click', (e)=>{ e.stopPropagation(); exportShareReport(); });
   const btnCollapse = els.resultsArea.querySelector('#btnCollapseAll');
@@ -2232,6 +2357,47 @@ function renderResults(){
       det.style.display = (det.style.display==="none" || !det.style.display) ? "table-row" : "none";
     });
   });
+}
+
+
+function confidenceExplain(r){
+  const parts = [];
+  const n = r.n||0;
+  if(n>=15) parts.push("Shot count: strong (≥15)");
+  else if(n>=10) parts.push("Shot count: decent (10–14)");
+  else if(n>=6) parts.push("Shot count: thin (6–9) — confirm");
+  else parts.push("Shot count: very low (<6) — informational");
+
+  // vertical context
+  if(isFinite(r.v_mm)){
+    const vMoa = r.v_mm / MOA_MM_AT_1000Y;
+    parts.push(`Vertical: ${fmt(vMoa,3)} MOA @1000y`);
+  }
+
+  // robustness
+  if(r.rob && r.rob.score!=null){
+    parts.push(`Robustness: ${Math.round(r.rob.score*100)}% (${r.rob.band})`);
+  }
+
+  // diagnostics flags
+  const sev = (r.flags||[]).reduce((s,f)=>s+(f.severity||0.0),0);
+  if(sev>0){
+    const tops = (r.flags||[]).slice(0,3).map(f=>f.label||f.key||"flag").join(", ");
+    parts.push(`Flags: ${tops}`);
+  } else {
+    parts.push("Flags: none detected");
+  }
+
+  // overall guidance
+  const band = r.conf?.band || "—";
+  if(band==="High") parts.push("Guidance: stable — good candidate to act on.");
+  else if(band==="Moderate") parts.push("Guidance: useful signal — re-test / confirm.");
+  else parts.push("Guidance: don’t chase — use for context only.");
+
+  // Reality mode note
+  if(state.realityMode) parts.push("Reality mode is ON (low-N and flags penalized harder).");
+
+  return parts.join(" • ");
 }
 
 function confTip(band){
@@ -2361,6 +2527,7 @@ function renderDetail(r){
         <div class="box"><div class="v mono">${isFinite(v)?fmt(v,3):"—"}</div><div class="k">Vertical</div></div>
         <div class="box"><div class="v mono">${isFinite(h)?fmt(h,3):"—"}</div><div class="k">Horizontal</div></div>
         <div class="box"><div class="v mono">${isFinite(esv)?fmt(esv,3):"—"}</div><div class="k">Radial ES (approx)</div></div>
+        ${ (r.rob && r.rob.score!=null) ? `<div class="box"><div class="v mono">${Math.round(r.rob.score*100)}%</div><div class="k">Robustness</div></div>` : `` }
       </div>
       <div style="margin-top:8px" class="muted small">Shots: <span class="mono">${r.n}</span> scored (${r.nAll} total)</div>
     </div>
@@ -2372,7 +2539,7 @@ function renderDetail(r){
           <div class="inner">
             <div class="muted small">Transparency view — ranking math is unchanged.</div>
             <div style="margin-top:8px" class="mono">
-              Scored shots: <b>${r.nScored}</b> (of ${r.nAll})<br/>
+              Scored shots: <b>${r.n}</b> (of ${r.nAll})<br/>
               Base ramp: clamp((n−5)/10,0..1) × 0.75 → <b>${fmt(clamp((r.nScored-5)/10,0,1)*0.75,3)}</b><br/>
               Flag penalty: <b>${fmt(r.flags.reduce((s,f)=>s+(f.severity||0.12),0),3)}</b><br/>
               Final confidence score: <b>${fmt(r.conf.score,3)}</b>
@@ -2617,11 +2784,54 @@ a.download = fname;
    Event wiring
    ========================= */
 
+
+/* =========================
+   Preferences (localStorage)
+   ========================= */
+function loadPrefs(){
+  try{
+    const raw = localStorage.getItem("nodelab_prefs_v1");
+    if(!raw) return;
+    const p = JSON.parse(raw);
+    if(p && (p.units==="moa" || p.units==="mm")) state.units = p.units;
+    if(p && typeof p.realityMode === "boolean") state.realityMode = p.realityMode;
+    if(p && p.realityWeights){
+      const lw = parseFloat(p.realityWeights.lowN);
+      const fw = parseFloat(p.realityWeights.flags);
+      if(isFinite(lw)) state.realityWeights.lowN = clamp(lw,0,0.6);
+      if(isFinite(fw)) state.realityWeights.flags = clamp(fw,0,1.2);
+    }
+  }catch(e){}
+}
+function savePrefs(){
+  try{
+    localStorage.setItem("nodelab_prefs_v1", JSON.stringify({
+      units: state.units,
+      realityMode: !!state.realityMode,
+      realityWeights: state.realityWeights
+    }));
+  }catch(e){}
+}
+
 function setUnits(u){
   state.units = u;
+  savePrefs();
   els.unitMoa.classList.toggle("on", u==="moa");
   els.unitMm.classList.toggle("on", u==="mm");
   // if results exist, re-render
+  if(state.results) renderResults();
+  render();
+}
+
+
+function setRealityMode(on){
+  state.realityMode = !!on;
+  savePrefs();
+  const b = els.btnReality;
+  if(b){
+    b.classList.toggle("primary", state.realityMode);
+    b.textContent = state.realityMode ? "Reality mode: ON" : "Reality mode: OFF";
+  }
   if(state.results) renderResults();
   render();
 }
