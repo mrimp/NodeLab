@@ -1,3 +1,4 @@
+
 <!doctype html>
 <html lang="en">
 <head>
@@ -529,6 +530,78 @@ tr.resRow.isCompared td:first-child{
   font-weight: 800;
   letter-spacing: .6px;
 }
+
+/* =========================
+   Phase UI: Wizard, Drops, Filters
+========================= */
+.wizardBar{
+  position: sticky;
+  top: 0;
+  z-index: 60;
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  border: 1px solid rgba(255,255,255,.10);
+  border-radius: 14px;
+  background: rgba(0,0,0,.22);
+  backdrop-filter: blur(10px);
+}
+.wizardSteps{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+.wStep{
+  appearance:none; border:1px solid rgba(255,255,255,.14);
+  background: rgba(255,255,255,.04);
+  color: var(--fg);
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.wStep:hover{ background: rgba(255,255,255,.07); }
+.wStep.on{ border-color: rgba(125,211,252,.55); background: rgba(125,211,252,.10); }
+.wStep.done{ border-color: rgba(134,239,172,.45); }
+.wizardHint{ margin-top:6px; }
+
+.dropZone{
+  margin-top:10px;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px dashed rgba(255,255,255,.18);
+  background: rgba(255,255,255,.03);
+  text-align:center;
+}
+.dropZone.isDragOver{
+  border-color: rgba(125,211,252,.65);
+  background: rgba(125,211,252,.10);
+}
+
+.detectedBox{
+  margin-top:10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(0,0,0,.18);
+}
+
+.lensBar{
+  display:flex; gap:10px; flex-wrap:wrap; align-items:center;
+  margin: 10px 0 12px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  border:1px solid rgba(255,255,255,.10);
+  background: rgba(0,0,0,.18);
+}
+.lensBar label{ display:flex; gap:6px; align-items:center; font-size:12px; color: var(--muted); cursor:pointer; user-select:none; }
+.lensBar input[type="checkbox"]{ transform: translateY(1px); }
+.pairChecks{
+  margin: 10px 0 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border:1px solid rgba(255,255,255,.10);
+  background: rgba(0,0,0,.18);
+}
+.pairChecks h4{ margin:0 0 6px; font-size: 13px; }
+.pairChecks ul{ margin: 6px 0 0; padding-left: 18px; }
+.pairChecks li{ margin: 4px 0; }
+
 </style>
 </head>
 <body>
@@ -549,6 +622,18 @@ tr.resRow.isCompared td:first-child{
     </div>
   </div>
 </header>
+
+
+  <div class="wizardBar" id="wizardBar">
+    <div class="wizardSteps" id="wizardSteps">
+      <button class="wStep" data-target="cardStep1" type="button">1. ShotMarker</button>
+      <button class="wStep" data-target="cardStep2" type="button">2. Chrono</button>
+      <button class="wStep" data-target="cardStep3" type="button">3. Pair</button>
+      <button class="wStep" data-target="cardStep4" type="button">4. Analyze</button>
+      <button class="wStep" data-target="cardStep5" type="button">5. Results</button>
+    </div>
+    <div class="wizardHint muted small" id="wizardHint">Load ShotMarker files to begin.</div>
+  </div>
 
   <div class="grid">
 
@@ -614,9 +699,12 @@ tr.resRow.isCompared td:first-child{
           <label class="btn toolt" data-tip="Load one or more ShotMarker exported target logs (CSV/TSV).">
             ➕ Add ShotMarker file(s) <input id="smFiles" type="file" accept=".csv,.tsv,text/csv,text/tab-separated-values" multiple hidden>
           </label>
+            <button class="btn danger toolt" id="btnClearSM" data-tip="Clear all ShotMarker files/targets (keeps prefs).">Clear</button>
         </div>
       </div>
       <div class="bd">
+        <div class="dropZone" id="smDropZone">Drop ShotMarker CSV/TSV here</div>
+        <div id="smDetected" class="detectedBox muted small" style="display:none"></div>
         <div id="smList" class="muted small">No ShotMarker files yet.</div>
       </div>
     </section>
@@ -631,9 +719,12 @@ tr.resRow.isCompared td:first-child{
           <label class="btn toolt" data-tip="Load chronograph files (CSV / XLS / XLSX). NodeLab extracts velocity and (if available) timestamps.">
             ➕ Add chrono file(s) <input id="chFiles" type="file" accept=".csv,.tsv,.xls,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv,text/tab-separated-values" multiple hidden>
           </label>
+            <button class="btn danger toolt" id="btnClearCH" data-tip="Clear all chrono files (keeps prefs).">Clear</button>
         </div>
       </div>
       <div class="bd">
+        <div class="dropZone" id="chDropZone">Drop chrono CSV/XLS here</div>
+        <div id="chDetected" class="detectedBox muted small" style="display:none"></div>
         <div id="chList" class="muted small">No chrono files yet.</div>
       </div>
     </section>
@@ -641,10 +732,12 @@ tr.resRow.isCompared td:first-child{
     <section class="card" id="cardStep3">
       <div class="hd">
         <div class="title">
-          <h2>Step 3 — Pair targets ↔ chrono (checkbox matrix)</h2>
+          <h2>Step 3 — Pair targets ↔ chrono (dropdown)</h2>
           <span class="badge" id="pairBadge">0/0 paired</span>
           <span class="badge toolt" id="pairCountWarn" style="display:none;margin-left:8px" data-tip="Expected one chrono file per target for 1:1 pairing.">⚠</span>
 <button class="btn sm" id="btnResetPairing" title="Clear all Step 3 pairings (does not reset files)">Reset pairing</button>
+<button class="btn sm toolt" id="btnAutoPair" data-tip="Auto-pair each target to the closest matching chrono string (by shot count & filename).">Auto-pair</button>
+<button class="btn sm toolt" id="btnPairChecks" data-tip="Show pairing sanity checks (duplicates, missing pairs, mismatches).">Pairing checks</button>
         </div>
         <div class="step-subhint" style="margin-top:6px;font-size:12px;color:rgba(255,255,255,.55);line-height:1.25;">Each target must be paired to exactly one chrono string.</div>
         <div class="row">
@@ -653,6 +746,7 @@ tr.resRow.isCompared td:first-child{
         </div>
       </div>
       <div class="bd">
+        <div id="pairChecks" class="pairChecks" style="display:none"></div>
         <div id="pairArea" class="muted small">Load ShotMarker and chrono files to build the pairing matrix.</div>
       </div>
     </section>
@@ -684,8 +778,13 @@ tr.resRow.isCompared td:first-child{
 <script>
 
 const DEBUG = false;
-const log = (...a)=>{ if(DEBUG) log(...a); };
-const warn = (...a)=>{ if(DEBUG) warn(...a); };
+const log = (...a)=>{ if(DEBUG) console.log(...a); };
+const warn = (...a)=>{ if(DEBUG) console.warn(...a); };
+
+// Versioning (keep suite header untouched; use these everywhere else)
+const APP_NAME = "NodeLab";
+const APP_VERSION = "2.5";
+const APP_FULL_VERSION = `${APP_NAME} v${APP_VERSION}`;
 
 /* =========================================================
    NodeLab v2 — Standalone (Spec v1.0)
@@ -697,7 +796,7 @@ const warn = (...a)=>{ if(DEBUG) warn(...a); };
 
 const MOA_MM_AT_1000Y = 265.94; // 10.47in * 25.4mm
 const state = {
-  version: "NodeLab v2.5",
+  version: APP_FULL_VERSION,
   units: "moa", // moa|mm
   realityMode: false, // 1000-yard reality weighting
   realityWeights: { lowN: 0.18, flags: 0.30 },
@@ -709,7 +808,10 @@ const state = {
   results: null,
   shooterNotes: {}, // targetId -> {text, updatedAt}
   pins: [], // pinned targetIds ("lock contenders")
-  compareSel: [] // up to 3 targetIds for Compare strip
+  compareSel: [], // up to 3 targetIds for Compare strip
+  // View prefs (filters, open rows)
+  view: { onlyActionable:false, onlyPinned:false, lowConfidence:false, showPairChecks:false, openRows: [] },
+  resultsStale: false
 };
 
 const els = {
@@ -900,6 +1002,7 @@ function parseShotMarkerText(text, filename){
   let delim = ",";
   let targets = [];
   let rows = [];
+  const info = { file: filename, delimiter: null, header: null, targets: 0, shots: 0, scored: 0, sighters: 0 };
   function flush(){
     if(!currentMeta || !header || rows.length===0) { rows=[]; return; }
     const tId = uid("tgt");
@@ -917,6 +1020,13 @@ function parseShotMarkerText(text, filename){
       return {time, tags, x_mm: x, y_mm: y, v_fps: v, score, tempC, raw:o};
     });
     const scored = parsedShots.filter(s=> !(s.tags||"").includes("sighter") );
+    // parse diagnostics
+    info.targets += 1;
+    info.shots += parsedShots.length;
+    info.scored += scored.length;
+    info.sighters += (parsedShots.length - scored.length);
+    if(!info.header) info.header = header ? header.slice() : null;
+    if(!info.delimiter) info.delimiter = delim;
     const name = currentMeta?.name || guessTargetNameFromMeta(currentMeta?.rawLine || filename) || filename;
     targets.push({
       id: tId,
@@ -1023,7 +1133,7 @@ function parseShotMarkerText(text, filename){
       flush();
     }
   }
-  return targets;
+  return { targets, info };
 }
 
 function guessTargetNameFromMeta(rawLine){
@@ -1760,6 +1870,7 @@ function runAnalysis(){
     return (b.n||0)-(a.n||0);
   });
   state.results = { rows, totalScored, generatedAt: new Date().toISOString() };
+  state.resultsStale = false;
 }
 
 function iconSvg(kind){
@@ -1856,7 +1967,101 @@ function render(){
   els.btnRun.disabled = !ready;
   els.runBadge.textContent = ready ? "Ready" : "Not ready";
   els.runHint.textContent = ready ? "You're good. Run it." : "Load files and complete pairings.";  applyRunTooltip();  applyRunEnabled();
+  updateDetectedUI();
+  updateWizardUI();
 }
+
+function updateDetectedUI(){
+  const smBox = document.getElementById("smDetected");
+  if(smBox){
+    if(state.shotmarkerFiles && state.shotmarkerFiles.length){
+      const infos = state.shotmarkerFiles.map(f=>f.info).filter(Boolean);
+      const headers = infos.map(i=>i.header).filter(Boolean);
+      const hdr = headers[0] || null;
+      const delim = infos[0]?.delimiter || ",";
+      const tgt = state.targets?.length || 0;
+      const scored = state.targets?.reduce((s,t)=>s + (t.scoredShots?.length||0), 0) || 0;
+      const total = state.targets?.reduce((s,t)=>s + (t.shots?.length||0), 0) || 0;
+      const sighters = Math.max(0, total - scored);
+      smBox.style.display = "block";
+      smBox.innerHTML = `
+        <div class="row" style="justify-content:space-between;align-items:center;gap:8px">
+          <b>Detected</b>
+          <span class="mono small">Targets: ${tgt} • Shots: ${scored} scored (${sighters} sighters)</span>
+        </div>
+        <div class="muted small">Delimiter: <span class="mono">${escapeHtml(delim)}</span>${hdr? ` • Columns: <span class="mono">${escapeHtml(hdr.slice(0,14).join(", "))}${hdr.length>14?"…":""}</span>`:""}</div>
+      `;
+    }else{
+      smBox.style.display = "none";
+      smBox.innerHTML = "";
+    }
+  }
+
+  const chBox = document.getElementById("chDetected");
+  if(chBox){
+    if(state.chronoFiles && state.chronoFiles.length){
+      const shots = state.chronoFiles.reduce((s,c)=>s + (c.shots?.length||0), 0);
+      chBox.style.display = "block";
+      chBox.innerHTML = `
+        <div class="row" style="justify-content:space-between;align-items:center;gap:8px">
+          <b>Detected</b>
+          <span class="mono small">Files: ${state.chronoFiles.length} • Shots: ${shots}</span>
+        </div>
+        <div class="muted small">Tip: For match workflow, aim for 1 chrono file per target (1:1 pairing).</div>
+      `;
+    }else{
+      chBox.style.display = "none";
+      chBox.innerHTML = "";
+    }
+  }
+}
+
+function updateWizardUI(){
+  const bar = document.getElementById("wizardBar");
+  if(!bar) return;
+  const steps = Array.from(bar.querySelectorAll(".wStep"));
+  const totalTargets = state.targets?.length || 0;
+  const hasSM = (state.shotmarkerFiles?.length||0) > 0 && totalTargets>0;
+  const hasCH = (state.chronoFiles?.length||0) > 0;
+  const paired = Object.keys(state.pairings||{}).length;
+  const isPaired = totalTargets>0 && paired===totalTargets;
+  const hasResults = !!(state.results && state.results.rows && state.results.rows.length);
+
+  steps.forEach(btn=>{
+    const tgt = btn.getAttribute("data-target");
+    btn.classList.remove("on","done");
+    if(tgt==="cardStep1" && hasSM) btn.classList.add("done");
+    if(tgt==="cardStep2" && hasCH) btn.classList.add("done");
+    if(tgt==="cardStep3" && isPaired) btn.classList.add("done");
+    if(tgt==="cardStep4" && isPaired) btn.classList.add("done");
+    if(tgt==="cardStep5" && hasResults) btn.classList.add("done");
+  });
+
+  // Choose current step (first unmet)
+  let current = "cardStep1";
+  if(hasSM) current = "cardStep2";
+  if(hasSM && hasCH) current = "cardStep3";
+  if(hasSM && hasCH && isPaired) current = hasResults ? "cardStep5" : "cardStep4";
+  steps.forEach(btn=>{
+    if(btn.getAttribute("data-target")===current) btn.classList.add("on");
+  });
+
+  const hint = document.getElementById("wizardHint");
+  if(hint){
+    if(!hasSM) hint.textContent = "Step 1: Add ShotMarker files (targets).";
+    else if(!hasCH) hint.textContent = "Step 2: Add chrono files (one per target).";
+    else if(!isPaired) hint.textContent = "Step 3: Pair each target to a chrono string.";
+    else if(!hasResults) hint.textContent = "Step 4: Ready — click Analyze.";
+    else hint.textContent = state.resultsStale ? "Results are stale — pairings changed. Re-run Analyze to refresh." : "Results ready. Use Lens filters + pins/compare.";
+  }
+}
+
+function scrollToCard(id){
+  const el = document.getElementById(id);
+  if(!el) return;
+  el.scrollIntoView({behavior:"smooth", block:"start"});
+}
+
 
 
 
@@ -1948,9 +2153,137 @@ function renderPairMatrix(){
         state.pairings[tid] = cid;
       }
       render();
-      renderPairMatrix();
+      if(state.results){ state.resultsStale = true; }
     });
   });
+  updatePairChecksUI();
+}
+
+
+function computePairingIssues(){
+  const targets = state.targets || [];
+  const chronos = state.chronoFiles || [];
+  const issues = [];
+  if(!targets.length && !chronos.length) return issues;
+
+  // missing pairs
+  for(const t of targets){
+    if(!state.pairings || !state.pairings[t.id]){
+      issues.push({ severity:"warn", text:`Missing pairing for target "${t.name||t.id}".` });
+    }
+  }
+
+  // duplicate chrono pairing
+  const used = {};
+  for(const [tid,cid] of Object.entries(state.pairings||{})){
+    if(!cid) continue;
+    used[cid] = used[cid] || [];
+    used[cid].push(tid);
+  }
+  for(const [cid,tids] of Object.entries(used)){
+    if(tids.length>1){
+      const c = chronos.find(x=>x.id===cid);
+      issues.push({ severity:"warn", text:`Chrono "${(c&&c.name)||cid}" is paired to ${tids.length} targets.` });
+    }
+  }
+
+  // shot count mismatches
+  for(const t of targets){
+    const cid = state.pairings?.[t.id];
+    if(!cid) continue;
+    const c = chronos.find(x=>x.id===cid);
+    if(!c) continue;
+    const tn = t.scoredShots?.length || 0;
+    const cn = c.shots?.length || 0;
+    if(tn && cn && Math.abs(tn - cn) >= 3){
+      issues.push({ severity:"info", text:`Shot count mismatch: "${t.name||t.id}" has ${tn}, chrono has ${cn}.` });
+    }
+  }
+
+  // count mismatch (global)
+  if(targets.length && chronos.length && targets.length !== chronos.length){
+    issues.push({ severity:"info", text:`Counts differ: ${targets.length} targets vs ${chronos.length} chrono files. (1:1 expected for match workflow.)` });
+  }
+  return issues;
+}
+
+function updatePairChecksUI(){
+  const box = document.getElementById("pairChecks");
+  if(!box) return;
+  const view = state.view || (state.view = { onlyActionable:false, onlyPinned:false, lowConfidence:false, showPairChecks:false, openRows: [] });
+  const issues = computePairingIssues();
+  const shouldShow = !!view.showPairChecks;
+
+  if(!shouldShow){
+    box.style.display = "none";
+    box.innerHTML = "";
+    return;
+  }
+
+  box.style.display = "block";
+  const has = issues.length;
+  box.innerHTML = `
+    <div class="row" style="justify-content:space-between;align-items:center;gap:10px">
+      <h4>Pairing sanity checks</h4>
+      <button class="btn sm" id="btnHidePairChecks" type="button">Hide</button>
+    </div>
+    <div class="muted small">${has ? "Review these before running:" : "No issues detected. ✅"}</div>
+    ${has ? `<ul>${issues.map(i=>`<li class="small ${i.severity==='warn'?'warntext':''}">${escapeHtml(i.text)}</li>`).join("")}</ul>` : ""}
+  `;
+  const bh = document.getElementById("btnHidePairChecks");
+  if(bh) bh.addEventListener("click", ()=>{ view.showPairChecks = false; savePrefs(); updatePairChecksUI(); });
+}
+
+function autoPairAll(){
+  // Pair each target to the best matching chrono, avoiding duplicates when possible
+  const targets = state.targets || [];
+  const chronos = state.chronoFiles || [];
+  const remaining = chronos.slice();
+  const pairings = {};
+  for(const t of targets){
+    let best = null;
+    let bestScore = Infinity;
+    const tn = t.scoredShots?.length || 0;
+    for(const c of remaining){
+      const cn = c.shots?.length || 0;
+      const dShots = Math.abs((cn||0) - (tn||0));
+      const dName = levenshtein((t.name||"").toLowerCase(), (c.name||"").toLowerCase());
+      const score = dShots*5 + dName; // shot count dominates
+      if(score < bestScore){
+        bestScore = score;
+        best = c;
+      }
+    }
+    if(best){
+      pairings[t.id] = best.id;
+      // remove used chrono so we don't duplicate by default
+      const idx = remaining.findIndex(x=>x.id===best.id);
+      if(idx>=0) remaining.splice(idx,1);
+    }
+  }
+  state.pairings = pairings;
+  state.resultsStale = true;
+}
+
+function levenshtein(a,b){
+  a = String(a||""); b = String(b||"");
+  const m = a.length, n = b.length;
+  if(m===0) return n;
+  if(n===0) return m;
+  const dp = Array.from({length:m+1}, ()=>new Array(n+1).fill(0));
+  for(let i=0;i<=m;i++) dp[i][0]=i;
+  for(let j=0;j<=n;j++) dp[0][j]=j;
+  for(let i=1;i<=m;i++){
+    for(let j=1;j<=n;j++){
+      const cost = (a[i-1]===b[j-1]) ? 0 : 1;
+      dp[i][j] = Math.min(
+        dp[i-1][j] + 1,
+        dp[i][j-1] + 1,
+        dp[i-1][j-1] + cost
+      );
+    }
+  }
+  return dp[m][n];
 }
 
 
@@ -2022,10 +2355,30 @@ function renderResults(){
   const rankMap = new Map();
   rows.forEach((r,i)=>rankMap.set(r.targetId, i+1));
   const compareSet = new Set(((state.compareSel||[]).slice(0,3)));
+  const openSet = new Set(((state.view && Array.isArray(state.view.openRows)) ? state.view.openRows : []));
 
   const pinned = rows.filter(r=>pinnedSet.has(r.targetId));
   const unpinned = rows.filter(r=>!pinnedSet.has(r.targetId));
-  const displayRows = [...pinned, ...unpinned];
+  const baseRows = [...pinned, ...unpinned];
+  const view = state.view || (state.view = { onlyActionable:false, onlyPinned:false, lowConfidence:false, showPairChecks:false, openRows: [] });
+  const LOW_CONF_THRESHOLD = 0.62;
+
+  function isRowActionable(r){
+    // "Actionable" = likely worth attention (flags, mismatch, or low confidence)
+    if(!r) return false;
+    const confScore = r.conf?.score ?? 1;
+    if(confScore < LOW_CONF_THRESHOLD) return true;
+    if((r.flags||[]).some(f=> (f.severity||0) >= 0.12)) return true;
+    if(r.hasSighters) return true;
+    if(r.pairing && r.pairing.chronoId && r.pairing.chronoShots && r.n && Math.abs(r.pairing.chronoShots - r.n) >= 3) return true;
+    return false;
+  }
+
+  let displayRows = baseRows.slice();
+  if(view.onlyPinned) displayRows = displayRows.filter(r=> pinnedSet.has(r.targetId));
+  if(view.lowConfidence) displayRows = displayRows.filter(r=> (r.conf?.score ?? 1) < LOW_CONF_THRESHOLD);
+  if(view.onlyActionable) displayRows = displayRows.filter(isRowActionable);
+
   const unitLabel = (state.units==="mm") ? "mm @ 1000y" : "MOA @ 1000y";
   const vKey = (state.units==="mm") ? "v_mm" : "v_moa";
   // table
@@ -2039,10 +2392,20 @@ function renderResults(){
         <button class="btn sm toolt" id="btnClearPins" data-tip="Unpin all contenders">Clear pins</button>
         <button class="btn sm toolt" id="btnShareReport" data-tip="Export a lightweight HTML report (ranking + notes)">Share report</button>
         <button class="btn sm toolt" id="btnCollapseAll" data-tip="Collapse all expanded drilldowns">Collapse all</button>
-        <span class="muted small mono">Generated ${new Date(state.results.generatedAt).toLocaleString()}</span>
+        <span class="muted small mono">Generated ${new Date(state.results.generatedAt).toLocaleString()}</span>${state.resultsStale ? `<span class="badge warn toolt" data-tip="Pairings/inputs changed after this run. Re-run Analyze to refresh.">STALE</span>` : ``}
       </div>
     </div>
-    
+
+    <div class="lensBar" id="lensBar">
+      <span class="muted small">Lens:</span>
+      <label><input type="checkbox" id="fltActionable">Only actionable</label>
+      <label><input type="checkbox" id="fltPinned">Only pinned</label>
+      <label><input type="checkbox" id="fltLowConf">Low confidence</label>
+      <span class="muted small mono" id="lensCount"></span>
+      <span class="grow"></span>
+      <button class="btn sm" id="btnResetFilters" type="button">Reset filters</button>
+    </div>
+
     <details class="note" style="margin:10px 0">
       <summary>Advanced</summary>
       <div class="inner">
@@ -2115,7 +2478,7 @@ function renderResults(){
         <td><span class="chip ${conf.cls} toolt" data-tip="${escapeHtml(confidenceExplain(r))}">${conf.band}</span></td>
         <td><div class="icons">${diagIcons || `<span class="muted small">—</span>`}</div></td>
       </tr>
-      <tr class="resDetail" data-detail="${r.targetId}" style="display:none;background:rgba(0,0,0,.10)">
+      <tr class="resDetail" data-detail="${r.targetId}" style="display:${openSet.has(r.targetId)?"table-row":"none"};background:rgba(0,0,0,.10)">
         <td colspan="10">
           ${renderDetail(r)}
         </td>
@@ -2125,6 +2488,33 @@ function renderResults(){
   html += `</tbody></table></div>`;
   // Hook up pin / compare controls (must be after HTML insert)
   els.resultsArea.innerHTML = html;
+
+  // Lens controls (persisted in state.view)
+  const view2 = state.view || (state.view = { onlyActionable:false, onlyPinned:false, lowConfidence:false, showPairChecks:false, openRows: [] });
+  const fltA = els.resultsArea.querySelector("#fltActionable");
+  const fltP = els.resultsArea.querySelector("#fltPinned");
+  const fltL = els.resultsArea.querySelector("#fltLowConf");
+  const lensCount = els.resultsArea.querySelector("#lensCount");
+  const btnRF = els.resultsArea.querySelector("#btnResetFilters");
+
+  if(fltA) fltA.checked = !!view2.onlyActionable;
+  if(fltP) fltP.checked = !!view2.onlyPinned;
+  if(fltL) fltL.checked = !!view2.lowConfidence;
+
+  const totalAll = (state.results?.rows||[]).length;
+  if(lensCount) lensCount.textContent = `Showing ${displayRows.length}/${totalAll}`;
+
+  const bindLens = ()=>{
+    if(fltA){ fltA.addEventListener("change", ()=>{ view2.onlyActionable = !!fltA.checked; savePrefs(); renderResults(); }); }
+    if(fltP){ fltP.addEventListener("change", ()=>{ view.onlyPinned = !!fltP.checked; savePrefs(); renderResults(); }); }
+    if(fltL){ fltL.addEventListener("change", ()=>{ view.lowConfidence = !!fltL.checked; savePrefs(); renderResults(); }); }
+    if(btnRF){ btnRF.addEventListener("click", (e)=>{ 
+      e.preventDefault();
+      view.onlyActionable = false; view.onlyPinned = false; view.lowConfidence = false;
+      savePrefs(); renderResults();
+    });}
+  };
+  bindLens();
 
   const compareBar = els.resultsArea.querySelector('#compareBar');
   const updateCompareBar = ()=>{
@@ -2289,12 +2679,18 @@ function renderResults(){
     btnReality.addEventListener('click', (e)=>{ e.stopPropagation(); setRealityMode(!state.realityMode); });
   }
 
-  // Phase 1: Reset view (mode, pins, compare, open drilldowns)
+  // Phase 1: Reset view (mode, pins, compare, open rows, filters)
   const btnRV = els.resultsArea.querySelector('#btnResetView');
   if(btnRV) btnRV.addEventListener('click', (e)=>{
     e.stopPropagation();
     state.pins = [];
     state.compareSel = [];
+    const view = state.view || (state.view = { onlyActionable:false, onlyPinned:false, lowConfidence:false, showPairChecks:false, openRows: [] });
+    view.openRows = [];
+    view.onlyActionable = false;
+    view.onlyPinned = false;
+    view.lowConfidence = false;
+    savePrefs();
     setRealityMode(false);
     // collapse all open <details>
     els.resultsArea.querySelectorAll('details[open]').forEach(d=>{ d.open = false; });
@@ -2343,16 +2739,25 @@ function renderResults(){
   if(btnCollapse) btnCollapse.addEventListener('click', (e)=>{
     e.stopPropagation();
     els.resultsArea.querySelectorAll('tr.resDetail').forEach(tr=>{ tr.style.display='none'; });
+    if(state.view){ state.view.openRows = []; savePrefs(); }
   });
 
 
-  // Row expand/collapse (click anywhere else on the row)
+  // Row expand/collapse (persist open rows)
   els.resultsArea.querySelectorAll(".resRow").forEach(row=>{
-    row.addEventListener("click", ()=>{
+    row.addEventListener("click", (ev)=>{
+      // Ignore clicks on interactive elements
+      if(ev && ev.target && ev.target.closest && ev.target.closest("button,a,input,label,select,textarea,.toolt")) return;
       const tid = row.getAttribute("data-target");
       const det = els.resultsArea.querySelector(`tr.resDetail[data-detail="${tid}"]`);
       if(!det) return;
-      det.style.display = (det.style.display==="none" || !det.style.display) ? "table-row" : "none";
+      const willOpen = (det.style.display==="none" || !det.style.display);
+      det.style.display = willOpen ? "table-row" : "none";
+      const view = state.view || (state.view = { onlyActionable:false, onlyPinned:false, lowConfidence:false, showPairChecks:false, openRows: [] });
+      const s = new Set(Array.isArray(view.openRows) ? view.openRows : []);
+      if(willOpen) s.add(tid); else s.delete(tid);
+      view.openRows = Array.from(s);
+      savePrefs();
     });
   });
 }
@@ -2701,15 +3106,18 @@ ${compareRows.length ? `
 
 function exportSession(){
   const payload = {
+    app: { name: APP_NAME, version: APP_VERSION, full: APP_FULL_VERSION },
+    schema: 1,
     version: state.version,
     exportedAt: new Date().toISOString(),
+    prefs: { units: state.units, realityMode: !!state.realityMode, realityWeights: state.realityWeights, view: state.view || {} },
     units: state.units,
     sessionName: state.sessionName,
     ranking_basis: "vertical_dispersion_first",
     distance: "1000y",
     scoring_rules: { sighters_excluded: true, sighter_tags: ["sighter"] },
     shotmarkerFiles: state.shotmarkerFiles.map(f=>({
-      id:f.id, name:f.name, targets:f.targets
+      id:f.id, name:f.name, targets:f.targets, info: f.info || null
     })),
     chronoFiles: state.chronoFiles.map(c=>({
       id:c.id, name:c.name, shots:c.shots
@@ -2719,7 +3127,9 @@ function exportSession(){
     shooterNotes: state.shooterNotes || {},
     pins: state.pins || [],
     compareSel: state.compareSel || [],
-    results: state.results || null
+    results: state.results || null,
+    resultsStale: !!state.resultsStale,
+    view: state.view || {}
   };
 
   const blob = new Blob([JSON.stringify(payload,null,2)], {type:"application/json"});
@@ -2751,8 +3161,31 @@ a.download = fname;
       if(!obj || !obj.targets || !obj.chronoFiles) throw new Error("Not a NodeLab session file");
       // hydrate
       state.units = obj.units || "moa";
+      // Restore prefs (new exports include obj.prefs)
+      if(obj.prefs){
+        if(obj.prefs.units) state.units = obj.prefs.units;
+        if(typeof obj.prefs.realityMode==='boolean') state.realityMode = obj.prefs.realityMode;
+        if(obj.prefs.realityWeights){
+          const lw = parseFloat(obj.prefs.realityWeights.lowN);
+          const fw = parseFloat(obj.prefs.realityWeights.flags);
+          if(isFinite(lw)) state.realityWeights.lowN = clamp(lw,0,0.6);
+          if(isFinite(fw)) state.realityWeights.flags = clamp(fw,0,1.2);
+        }
+        if(obj.prefs.view){
+          const v = state.view || (state.view = { onlyActionable:false, onlyPinned:false, lowConfidence:false, showPairChecks:false, openRows: [] });
+          if(typeof obj.prefs.view.onlyActionable==='boolean') v.onlyActionable = obj.prefs.view.onlyActionable;
+          if(typeof obj.prefs.view.onlyPinned==='boolean') v.onlyPinned = obj.prefs.view.onlyPinned;
+          if(typeof obj.prefs.view.lowConfidence==='boolean') v.lowConfidence = obj.prefs.view.lowConfidence;
+          if(typeof obj.prefs.view.showPairChecks==='boolean') v.showPairChecks = obj.prefs.view.showPairChecks;
+          if(Array.isArray(obj.prefs.view.openRows)) v.openRows = obj.prefs.view.openRows.slice(0,50);
+        }
+      } else {
+        if(typeof obj.realityMode==='boolean') state.realityMode = obj.realityMode;
+        if(obj.realityWeights) state.realityWeights = obj.realityWeights;
+        if(obj.view){ state.view = Object.assign(state.view||{}, obj.view); }
+      }
       state.sessionName = obj.sessionName || "";
-      state.shotmarkerFiles = (obj.shotmarkerFiles||[]).map(f=>({id:f.id||uid("sm"), name:f.name, targets:f.targets||[]}));
+      state.shotmarkerFiles = (obj.shotmarkerFiles||[]).map(f=>({id:f.id||uid("sm"), name:f.name, targets:f.targets||[], info: f.info || null}));
       state.chronoFiles = (obj.chronoFiles||[]).map(c=>({id:c.id||uid("ch"), name:c.name, shots:c.shots||[]}));
       state.targets = obj.targets || [];
       state.pairings = obj.pairings || {};
@@ -2760,6 +3193,7 @@ a.download = fname;
       state.pins = Array.isArray(obj.pins) ? obj.pins : [];
       state.compareSel = Array.isArray(obj.compareSel) ? obj.compareSel : [];
       state.results = obj.results || null;
+      state.resultsStale = !!obj.resultsStale;
       // UI
       els.sessionName.value = state.sessionName || els.sessionName.value;
       setUnits(state.units);
@@ -2799,6 +3233,14 @@ function loadPrefs(){
       if(isFinite(lw)) state.realityWeights.lowN = clamp(lw,0,0.6);
       if(isFinite(fw)) state.realityWeights.flags = clamp(fw,0,1.2);
     }
+    if(p && p.view){
+      const v = state.view || (state.view = { onlyActionable:false, onlyPinned:false, lowConfidence:false, showPairChecks:false, openRows: [] });
+      if(typeof p.view.onlyActionable==='boolean') v.onlyActionable = p.view.onlyActionable;
+      if(typeof p.view.onlyPinned==='boolean') v.onlyPinned = p.view.onlyPinned;
+      if(typeof p.view.lowConfidence==='boolean') v.lowConfidence = p.view.lowConfidence;
+      if(typeof p.view.showPairChecks==='boolean') v.showPairChecks = p.view.showPairChecks;
+      if(Array.isArray(p.view.openRows)) v.openRows = p.view.openRows.slice(0,50);
+    }
   }catch(e){}
 }
 function savePrefs(){
@@ -2806,7 +3248,14 @@ function savePrefs(){
     localStorage.setItem("nodelab_prefs_v1", JSON.stringify({
       units: state.units,
       realityMode: !!state.realityMode,
-      realityWeights: state.realityWeights
+      realityWeights: state.realityWeights,
+      view: {
+        onlyActionable: !!(state.view && state.view.onlyActionable),
+        onlyPinned: !!(state.view && state.view.onlyPinned),
+        lowConfidence: !!(state.view && state.view.lowConfidence),
+        showPairChecks: !!(state.view && state.view.showPairChecks),
+        openRows: Array.isArray(state.view && state.view.openRows) ? state.view.openRows.slice(0,50) : []
+      }
     }));
   }catch(e){}
 }
@@ -2918,63 +3367,76 @@ document.addEventListener("input", (e)=>{
 });
 
 
-els.smFiles.addEventListener("change", async (e)=>{
-  const files = Array.from(e.target.files||[]);
+
+
+async function handleSMFiles(fileList){
+  const files = Array.from(fileList||[]);
   if(!files.length) return;
   for(const file of files){
     try{
       const text = await readFileAsText(file);
-      const targets = parseShotMarkerText(text, file.name);
-      const smObj = { id: uid("sm"), name: file.name, targets };
+      const parsed = parseShotMarkerText(text, file.name);
+      const targets = (parsed && parsed.targets) ? parsed.targets : (parsed || []);
+      const info = (parsed && parsed.info) ? parsed.info : null;
+      const smObj = { id: uid("sm"), name: file.name, targets, info };
       state.shotmarkerFiles.push(smObj);
       // flatten targets
       for(const t of targets) state.targets.push(t);
-      toast(`Loaded ShotMarker: ${file.name}`);
+      toast(`Loaded ShotMarker: ${file.name} (${targets.length} targets)`);
     }catch(err){
       console.error(err);
-      toast(`ShotMarker parse failed: ${file.name}`);
+      toast(`ShotMarker error: ${file.name} — ${err && err.message ? err.message : "parse failed"}`);
     }
   }
-  // clear pairings if target set changed
+  // reset input so same file can be re-added if needed
+  if(els.smFiles) els.smFiles.value = "";
+  // Pairings + results stale
   state.pairings = {};
-  state.results = null;
-  els.resultsArea.textContent = "No results yet.";
+  state.resultsStale = true;
   render();
-  e.target.value="";
-});
+  updatePairChecksUI();
+  if(state.targets.length) scrollToCard("cardStep2");
+}
 
-els.chFiles.addEventListener("change", async (e)=>{
-  const files = Array.from(e.target.files||[]);
+async function handleCHFiles(fileList){
+  const files = Array.from(fileList||[]);
   if(!files.length) return;
   for(const file of files){
     try{
       const parsed = await parseChronoFile(file);
       // parseChronoFile may return either an array of shots, or [{name,shots},...] for multi-sheet .xls
       if(Array.isArray(parsed) && parsed.length && parsed[0] && typeof parsed[0] === "object" && ("shots" in parsed[0]) && ("name" in parsed[0])){
-        let n=0;
         for(const s of parsed){
           const cObj = { id: uid("ch"), name: `${file.name} • ${s.name}`, shots: s.shots };
           state.chronoFiles.push(cObj);
-          n++;
         }
-        toast(`Loaded chrono: ${file.name} (${n} strings)`);
-      } else {
-        const shots = parsed;
+        toast(`Loaded Chrono: ${file.name} (${parsed.length} sheets)`);
+      }else{
+        const shots = Array.isArray(parsed) ? parsed : [];
         const cObj = { id: uid("ch"), name: file.name, shots };
         state.chronoFiles.push(cObj);
-        toast(`Loaded chrono: ${file.name}`);
+        toast(`Loaded Chrono: ${file.name} (${shots.length} shots)`);
       }
     }catch(err){
       console.error(err);
-      toast(`Chrono parse failed: ${file.name} (${err.message})`);
+      toast(`Chrono error: ${file.name} — ${err && err.message ? err.message : "parse failed"}`);
     }
   }
-  // clear pairings if chrono set changed
+  if(els.chFiles) els.chFiles.value = "";
+  // Pairings + results stale
   state.pairings = {};
-  state.results = null;
-  els.resultsArea.textContent = "No results yet.";
+  state.resultsStale = true;
   render();
-  e.target.value="";
+  updatePairChecksUI();
+  if(state.chronoFiles.length) scrollToCard("cardStep3");
+}
+
+els.smFiles.addEventListener("change", async (e)=>{
+  await handleSMFiles(e.target.files);
+});
+
+els.chFiles.addEventListener("change", async (e)=>{
+  await handleCHFiles(e.target.files);
 });
 
 els.btnRun.addEventListener("click", ()=>{
@@ -2983,23 +3445,119 @@ els.btnRun.addEventListener("click", ()=>{
   toast("Analysis complete");
 });
 
+
+
+function initUIActions(){
+  if(initUIActions._done) return;
+  initUIActions._done = true;
+
+  // Wizard step buttons
+  const wb = document.getElementById("wizardBar");
+  if(wb){
+    wb.querySelectorAll(".wStep").forEach(btn=>{
+      btn.addEventListener("click", ()=>{
+        const tgt = btn.getAttribute("data-target");
+        if(tgt) scrollToCard(tgt);
+      });
+    });
+  }
+
+  // Clear buttons
+  const btnClearSM = document.getElementById("btnClearSM");
+  if(btnClearSM) btnClearSM.addEventListener("click", ()=>{
+    state.shotmarkerFiles = [];
+    state.targets = [];
+    state.pairings = {};
+    state.results = null;
+    state.resultsStale = false;
+    if(state.view) state.view.openRows = [];
+    if(els.smFiles) els.smFiles.value = "";
+    toast("Cleared ShotMarker data");
+    render();
+    updatePairChecksUI();
+    scrollToCard("cardStep1");
+  });
+
+  const btnClearCH = document.getElementById("btnClearCH");
+  if(btnClearCH) btnClearCH.addEventListener("click", ()=>{
+    state.chronoFiles = [];
+    state.pairings = {};
+    state.results = null;
+    state.resultsStale = false;
+    if(state.view) state.view.openRows = [];
+    if(els.chFiles) els.chFiles.value = "";
+    toast("Cleared chrono data");
+    render();
+    updatePairChecksUI();
+    scrollToCard("cardStep2");
+  });
+
+  // Pairing buttons
+  const btnResetP = document.getElementById("btnResetPairing");
+  if(btnResetP) btnResetP.addEventListener("click", ()=>{
+    state.pairings = {};
+    state.resultsStale = true;
+    toast("Pairings reset");
+    render();
+    updatePairChecksUI();
+  });
+
+  const btnAuto = document.getElementById("btnAutoPair");
+  if(btnAuto) btnAuto.addEventListener("click", ()=>{
+    if(!state.targets.length || !state.chronoFiles.length){
+      toast("Load ShotMarker + chrono files first");
+      return;
+    }
+    autoPairAll();
+    toast("Auto-paired");
+    render();
+    updatePairChecksUI();
+    scrollToCard("cardStep4");
+  });
+
+  const btnPC = document.getElementById("btnPairChecks");
+  if(btnPC) btnPC.addEventListener("click", ()=>{
+    const v = state.view || (state.view = { onlyActionable:false, onlyPinned:false, lowConfidence:false, showPairChecks:false, openRows: [] });
+    v.showPairChecks = !v.showPairChecks;
+    savePrefs();
+    updatePairChecksUI();
+    if(v.showPairChecks) scrollToCard("cardStep3");
+  });
+
+  // Drop zones
+  const smDZ = document.getElementById("smDropZone");
+  if(smDZ){
+    ["dragenter","dragover"].forEach(ev=>{
+      smDZ.addEventListener(ev, (e)=>{ e.preventDefault(); smDZ.classList.add("isDragOver"); });
+    });
+    ["dragleave","drop"].forEach(ev=>{
+      smDZ.addEventListener(ev, (e)=>{ e.preventDefault(); smDZ.classList.remove("isDragOver"); });
+    });
+    smDZ.addEventListener("drop", async (e)=>{
+      const files = e.dataTransfer?.files;
+      await handleSMFiles(files);
+    });
+  }
+
+  const chDZ = document.getElementById("chDropZone");
+  if(chDZ){
+    ["dragenter","dragover"].forEach(ev=>{
+      chDZ.addEventListener(ev, (e)=>{ e.preventDefault(); chDZ.classList.add("isDragOver"); });
+    });
+    ["dragleave","drop"].forEach(ev=>{
+      chDZ.addEventListener(ev, (e)=>{ e.preventDefault(); chDZ.classList.remove("isDragOver"); });
+    });
+    chDZ.addEventListener("drop", async (e)=>{
+      const files = e.dataTransfer?.files;
+      await handleCHFiles(files);
+    });
+  }
+}
+
 // init
 render();
+initUIActions();
 
-// Step 3: Reset pairing (only clears pairings)
-// If results already exist, mark them stale so the UI can prompt rerun (non-blocking).
-(function(){
-  const b = document.getElementById("btnResetPairing");
-  if(!b) return;
-  b.addEventListener("click", ()=>{
-    if(typeof state !== "undefined" && state.pairings){
-      state.pairings = {};
-      // Re-render
-      if(typeof render === "function") render();
-      if(typeof renderPairMatrix === "function") renderPairMatrix();
-    }
-  });
-})();
 
 </script>
 </body>
