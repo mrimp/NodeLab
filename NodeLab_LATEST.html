@@ -1,10 +1,11 @@
 
+
 <!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>NodeLab v2.5 • Standalone</title>
+<title>NodeLab v2.6.4 • Standalone</title>
 <style>:root{
     --bg:#0b0f14;
     --panel:#0f1620;
@@ -181,7 +182,8 @@
   .ico.good{border-color:rgba(50,213,131,.30);background:rgba(50,213,131,.10)}
   .ico.low{border-color:rgba(159,176,192,.20);background:rgba(159,176,192,.08)}
   .toolt{position:relative}
-  .toolt:hover::after{
+  .toolt:hover::after,
+  .toolt.tipOpen::after{
     content:attr(data-tip);
     position:absolute;left:50%;transform:translateX(-50%);
     bottom:calc(100% + 10px);
@@ -195,7 +197,8 @@
     z-index:50;
     white-space:normal;
   }
-  .toolt:hover::before{
+  .toolt:hover::before,
+  .toolt.tipOpen::before{
     content:"";
     position:absolute;left:50%;transform:translateX(-50%);
     bottom:100%;
@@ -602,6 +605,50 @@ tr.resRow.isCompared td:first-child{
 .pairChecks ul{ margin: 6px 0 0; padding-left: 18px; }
 .pairChecks li{ margin: 4px 0; }
 
+
+  /* Modal */
+  .backdrop{
+    position:fixed; inset:0; background:rgba(0,0,0,.55);
+    display:none; align-items:center; justify-content:center;
+    z-index:999;
+    padding:22px;
+  }
+  .backdrop.show{display:flex}
+  .modal{
+    width:min(860px, 100%);
+    background:linear-gradient(180deg, rgba(18,26,37,.98), rgba(12,18,26,.98));
+    border:1px solid rgba(255,255,255,.14);
+    border-radius:18px;
+    box-shadow:0 24px 70px rgba(0,0,0,.60);
+    overflow:hidden;
+  }
+  .modal .mh{
+    padding:14px 16px;
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    border-bottom:1px solid rgba(255,255,255,.08);
+  }
+  .modal .mh h3{margin:0; font-size:15px; letter-spacing:.2px}
+  .modal .mb{padding:14px 16px}
+  .modal .mf{
+    padding:12px 16px;
+    display:flex; gap:10px; justify-content:flex-end; flex-wrap:wrap;
+    border-top:1px solid rgba(255,255,255,.08);
+    background:rgba(0,0,0,.10);
+  }
+  .kbd{
+    display:inline-flex; align-items:center;
+    padding:2px 8px; border-radius:999px;
+    border:1px solid rgba(255,255,255,.16);
+    background:rgba(0,0,0,.22);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-size:12px; color:rgba(255,255,255,.86);
+  }
+  .hl{
+    background: rgba(124,156,255,.14);
+    border: 1px solid rgba(124,156,255,.22);
+    padding: 1px 6px; border-radius: 999px;
+  }
+
 </style>
 </head>
 <body>
@@ -610,7 +657,7 @@ tr.resRow.isCompared td:first-child{
   <div class="suiteHeader__left">
     <div class="suiteHeader__topline">
       <div class="suiteHeader__title">NodeLab</div>
-      <div class="suiteHeader__pill">v2.5</div>
+      <div class="suiteHeader__pill">v2.6.4</div>
       <div class="suiteHeader__pill suiteHeader__pill--muted">standalone</div>
     </div>
     <div class="suiteHeader__tagline">ShotMarker-first session analysis for 1000-yard reality. Vertical is king; velocity is context. NodeLab explains — you decide.</div>
@@ -626,11 +673,11 @@ tr.resRow.isCompared td:first-child{
 
   <div class="wizardBar" id="wizardBar">
     <div class="wizardSteps" id="wizardSteps">
-      <button class="wStep" data-target="cardStep1" type="button">1. ShotMarker</button>
-      <button class="wStep" data-target="cardStep2" type="button">2. Chrono</button>
-      <button class="wStep" data-target="cardStep3" type="button">3. Pair</button>
-      <button class="wStep" data-target="cardStep4" type="button">4. Analyze</button>
-      <button class="wStep" data-target="cardStep5" type="button">5. Results</button>
+      <button class="wStep" data-target="cardStep1" type="button">1) ShotMarker CSV</button>
+      <button class="wStep" data-target="cardStep2" type="button">2) Chrono CSV/XLS</button>
+      <button class="wStep" data-target="cardStep3" type="button">3) Pair targets</button>
+      <button class="wStep" data-target="cardStep4" type="button">4) Run analysis</button>
+      <button class="wStep" data-target="cardStep5" type="button">5) Results</button>
     </div>
     <div class="wizardHint muted small" id="wizardHint">Load ShotMarker files to begin.</div>
   </div>
@@ -648,9 +695,10 @@ tr.resRow.isCompared td:first-child{
             <button id="unitMoa" class="on">MOA @ 1000y</button>
             <button id="unitMm">mm @ 1000y</button>
           </div>
-          <button class="btn toolt" id="btnRefresh" data-tip="Re-render the UI from current data. No data loss.">🔄 Refresh UI</button>
-          <button class="btn danger toolt" id="btnReset" data-tip="Nukes the session — clears loaded files, pairings, and results.">💣 Reset session</button>
-          <button class="btn toolt" id="btnExport" data-tip="Exports the full session (raw data + pairings + UI state) to a dated .json.">💾 Export .json</button>
+          <button class="btn toolt" id="btnHelp" data-tip="Open Help (file expectations, interpretation, and keyboard shortcuts)." type="button">❓ Help</button>
+          <button class="btn toolt" id="btnRefresh" data-tip="Re-render the UI from current data. No data loss." type="button">🔄 Refresh UI</button>
+          <button class="btn danger toolt" id="btnReset" data-tip="Nukes the session — clears loaded files, pairings, and results." type="button">💣 Reset session</button>
+          <button class="btn toolt" id="btnExport" data-tip="Exports the full session (raw data + pairings + UI state) to a dated .json." type="button">💾 Export .json</button>
           <label class="btn toolt" data-tip="Import a previously exported NodeLab session .json.">
             📥 Import .json <input id="importJson" type="file" accept=".json,application/json" hidden>
           </label>
@@ -735,9 +783,9 @@ tr.resRow.isCompared td:first-child{
           <h2>Step 3 — Pair targets ↔ chrono (dropdown)</h2>
           <span class="badge" id="pairBadge">0/0 paired</span>
           <span class="badge toolt" id="pairCountWarn" style="display:none;margin-left:8px" data-tip="Expected one chrono file per target for 1:1 pairing.">⚠</span>
-<button class="btn sm" id="btnResetPairing" title="Clear all Step 3 pairings (does not reset files)">Reset pairing</button>
-<button class="btn sm toolt" id="btnAutoPair" data-tip="Auto-pair each target to the closest matching chrono string (by shot count & filename).">Auto-pair</button>
-<button class="btn sm toolt" id="btnPairChecks" data-tip="Show pairing sanity checks (duplicates, missing pairs, mismatches).">Pairing checks</button>
+<button class="btn sm" id="btnResetPairing" title="Clear all Step 3 pairings (does not reset files)" type="button">Reset pairing</button>
+<button class="btn sm toolt" id="btnAutoPair" data-tip="Auto-pair each target to the closest matching chrono string (by shot count & filename)." type="button">Auto-pair</button>
+<button class="btn sm toolt" id="btnPairChecks" data-tip="Show pairing sanity checks (duplicates, missing pairs, mismatches)." type="button">Pairing checks</button>
         </div>
         <div class="step-subhint" style="margin-top:6px;font-size:12px;color:rgba(255,255,255,.55);line-height:1.25;">Each target must be paired to exactly one chrono string.</div>
         <div class="row">
@@ -758,32 +806,63 @@ tr.resRow.isCompared td:first-child{
           <span class="badge" id="runBadge">Not ready</span>
         </div>
         <div class="row">
-          <button class="btn primary" id="btnRun" disabled>▶ Run Analysis</button>
+          <button class="btn primary" id="btnRun" disabled type="button">▶ Run Analysis</button>
           <span class="muted small" id="runHint">Load files and complete pairings.</span>
         </div>
       </div>
       <div class="bd">
+        <div id="cardStep5" style="position:relative;top:-80px"></div>
         <div id="resultsArea" class="muted small">No results yet.</div>
       </div>
     </section>
 
     <footer>
-      XquiziT Arms • NodeLab • Local-only • Shooter-facing analysis — explains, never dictates.
+      XquiziT Arms • NodeLab v2.6.4 • Local-only • Shooter-facing analysis — explains, never dictates.
     </footer>
   </div>
 </div>
 
 <div class="toast" id="toast"></div>
 
+
+<!-- Modal (app-level) -->
+<div class="backdrop" id="modalBackdrop" aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="mh">
+      <h3 id="modalTitle">Dialog</h3>
+      <button class="btn sm" id="modalClose" type="button">✕</button>
+    </div>
+    <div class="mb" id="modalBody"></div>
+    <div class="mf" id="modalFooter"></div>
+  </div>
+</div>
+
+
 <script>
 
 const DEBUG = false;
 const log = (...a)=>{ if(DEBUG) console.log(...a); };
-const warn = (...a)=>{ if(DEBUG) console.warn(...a); };
+const warn = (...a)=>{ if(DEBUG) if(DEBUG) console.warn(...a); };
+
+// Failsafe: header/session button delegation (keeps Help/Reset working even if later init fails)
+document.addEventListener("click", (e)=>{
+  const helpBtn = e.target && e.target.closest ? e.target.closest("#btnHelp") : null;
+  if(helpBtn){
+    e.preventDefault();
+    try{ if(typeof showHelp === "function") showHelp(); }catch(_e){}
+    return;
+  }
+  const resetBtn = e.target && e.target.closest ? e.target.closest("#btnReset") : null;
+  if(resetBtn){
+    e.preventDefault();
+    try{ if(typeof showResetModal === "function") showResetModal(); }catch(_e){}
+    return;
+  }
+}, true);
 
 // Versioning (keep suite header untouched; use these everywhere else)
 const APP_NAME = "NodeLab";
-const APP_VERSION = "2.5";
+const APP_VERSION = "2.6.4";
 const APP_FULL_VERSION = `${APP_NAME} v${APP_VERSION}`;
 
 /* =========================================================
@@ -1969,6 +2048,7 @@ function render(){
   els.runHint.textContent = ready ? "You're good. Run it." : "Load files and complete pairings.";  applyRunTooltip();  applyRunEnabled();
   updateDetectedUI();
   updateWizardUI();
+  scheduleAutosave();
 }
 
 function updateDetectedUI(){
@@ -1976,20 +2056,38 @@ function updateDetectedUI(){
   if(smBox){
     if(state.shotmarkerFiles && state.shotmarkerFiles.length){
       const infos = state.shotmarkerFiles.map(f=>f.info).filter(Boolean);
-      const headers = infos.map(i=>i.header).filter(Boolean);
-      const hdr = headers[0] || null;
+      const hdr = (infos[0] && infos[0].header) ? infos[0].header.slice() : null;
       const delim = infos[0]?.delimiter || ",";
       const tgt = state.targets?.length || 0;
       const scored = state.targets?.reduce((s,t)=>s + (t.scoredShots?.length||0), 0) || 0;
       const total = state.targets?.reduce((s,t)=>s + (t.shots?.length||0), 0) || 0;
       const sighters = Math.max(0, total - scored);
+
+      const warns = [];
+      if(tgt===0) warns.push("No targets detected — make sure you exported target logs (CSV/TSV), not a screenshot.");
+      if(total>0 && scored===0) warns.push("0 scored shots — everything may be tagged as a sighter. (Sighters are excluded from ranking.)");
+      if(hdr && hdr.length){
+        const h = hdr.map(x=>String(x||"").toLowerCase().trim());
+        const hasAny = (arr)=>arr.some(k=>h.includes(k));
+        const hasTime = hasAny(["time"," shot time","timestamp"]);
+        const hasId = hasAny(["id","shot id","#"]);
+        const hasX = hasAny(["x mm","x_mm","x"]);
+        const hasY = hasAny(["y mm","y_mm","y"]);
+        if(!hasTime) warns.push("Missing a clear Time column. (We can still run, but pairing/diagnostics may be weaker.)");
+        if(!hasId) warns.push("Missing a clear Shot ID column.");
+        if(!hasX || !hasY) warns.push("Missing X/Y (impact position) columns — dispersion math may be unusable.");
+      }
+
       smBox.style.display = "block";
       smBox.innerHTML = `
         <div class="row" style="justify-content:space-between;align-items:center;gap:8px">
           <b>Detected</b>
           <span class="mono small">Targets: ${tgt} • Shots: ${scored} scored (${sighters} sighters)</span>
         </div>
-        <div class="muted small">Delimiter: <span class="mono">${escapeHtml(delim)}</span>${hdr? ` • Columns: <span class="mono">${escapeHtml(hdr.slice(0,14).join(", "))}${hdr.length>14?"…":""}</span>`:""}</div>
+        ${warns.length ? `<div class="muted small" style="margin-top:6px"><b class="warntext">Checks</b><ul style="margin:6px 0 0 18px">${warns.map(w=>`<li class="small warntext">${escapeHtml(w)}</li>`).join("")}</ul></div>` : ""}
+        <div class="muted small" style="margin-top:8px">Delimiter: <span class="mono">${escapeHtml(delim)}</span></div>
+        ${hdr ? `<div class="muted small">Header: <span class="mono">${escapeHtml(hdr.slice(0,14).join(", "))}${hdr.length>14?"…":""}</span></div>
+    <div class="muted small" style="margin-top:6px">Version: <b>2.6.4</b> (Release)</div>` : ""}
       `;
     }else{
       smBox.style.display = "none";
@@ -2001,13 +2099,16 @@ function updateDetectedUI(){
   if(chBox){
     if(state.chronoFiles && state.chronoFiles.length){
       const shots = state.chronoFiles.reduce((s,c)=>s + (c.shots?.length||0), 0);
+      const want = state.targets?.length || 0;
+      const have = state.chronoFiles.length;
+      const warn = (want>0 && have!==want) ? `Count mismatch: ${have} chrono file(s) loaded for ${want} target(s). Pairings are still allowed, but double-check.` : "";
       chBox.style.display = "block";
       chBox.innerHTML = `
         <div class="row" style="justify-content:space-between;align-items:center;gap:8px">
           <b>Detected</b>
-          <span class="mono small">Files: ${state.chronoFiles.length} • Shots: ${shots}</span>
+          <span class="mono small">Files: ${have} • Shots: ${shots}</span>
         </div>
-        <div class="muted small">Tip: For match workflow, aim for 1 chrono file per target (1:1 pairing).</div>
+        ${warn ? `<div class="muted small warntext" style="margin-top:6px">${escapeHtml(warn)}</div>` : `<div class="muted small" style="margin-top:6px">Tip: For match workflow, aim for 1 chrono file per target (1:1 pairing).</div>`}
       `;
     }else{
       chBox.style.display = "none";
@@ -2015,6 +2116,7 @@ function updateDetectedUI(){
     }
   }
 }
+
 
 function updateWizardUI(){
   const bar = document.getElementById("wizardBar");
@@ -2048,12 +2150,24 @@ function updateWizardUI(){
 
   const hint = document.getElementById("wizardHint");
   if(hint){
-    if(!hasSM) hint.textContent = "Step 1: Add ShotMarker files (targets).";
-    else if(!hasCH) hint.textContent = "Step 2: Add chrono files (one per target).";
-    else if(!isPaired) hint.textContent = "Step 3: Pair each target to a chrono string.";
-    else if(!hasResults) hint.textContent = "Step 4: Ready — click Analyze.";
-    else hint.textContent = state.resultsStale ? "Results are stale — pairings changed. Re-run Analyze to refresh." : "Results ready. Use Lens filters + pins/compare.";
+    const need = totalTargets || 0;
+    const haveChrono = state.chronoFiles?.length || 0;
+    const pairedNow = Object.keys(state.pairings||{}).length;
+    if(!hasSM){
+      hint.textContent = `Step 1: Add ShotMarker CSV(s) — ${need} target${need===1?"":"s"} detected.`;
+    }else if(!hasCH){
+      hint.textContent = `Step 2: Add chrono file(s) — ${haveChrono}/${need||"?"} loaded (aim 1 per target).`;
+    }else if(!isPaired){
+      hint.textContent = `Step 3: Pair targets — ${pairedNow}/${need} paired.`;
+    }else if(!hasResults){
+      hint.textContent = `Step 4: Ready — click Run analysis.`;
+    }else{
+      hint.textContent = state.resultsStale
+        ? "Results are STALE — pairings or files changed. Re-run analysis to refresh."
+        : "Results ready. Use Lens filters + pins/compare.";
+    }
   }
+
 }
 
 function scrollToCard(id){
@@ -3084,6 +3198,8 @@ ${compareRows.length ? `
   <div class="section" style="color:#555;font-size:12px;margin-top:18px">
     Exported from NodeLab (standalone). NodeLab explains — you decide.
   </div>
+
+
 </body></html>`;
 
   const blob = new Blob([html], {type:"text/html"});
@@ -3153,62 +3269,272 @@ a.download = fname;
   a.click();
   setTimeout(()=>URL.revokeObjectURL(a.href), 1500);
   toast(`Exported ${fn}`);
-}function importSession(file){
+}
+
+const AUTOSAVE_KEY = "nodelab_autosave_v1";
+let _autosaveTimer = null;
+
+function buildSessionObject(){
+  return {
+    app: { name: APP_NAME, version: APP_VERSION, full: APP_FULL_VERSION },
+    schema: 1,
+    version: state.version,
+    exportedAt: new Date().toISOString(),
+    prefs: { units: state.units, realityMode: !!state.realityMode, realityWeights: state.realityWeights, view: state.view || {} },
+    units: state.units,
+    sessionName: state.sessionName,
+    ranking_basis: "vertical_dispersion_first",
+    distance: "1000y",
+    scoring_rules: { sighters_excluded: true, sighter_tags: ["sighter"] },
+    shotmarkerFiles: state.shotmarkerFiles.map(f=>({ id:f.id, name:f.name, targets:f.targets, info: f.info || null })),
+    chronoFiles: state.chronoFiles.map(c=>({ id:c.id, name:c.name, shots:c.shots })),
+    targets: state.targets,
+    pairings: state.pairings,
+    shooterNotes: state.shooterNotes || {},
+    pins: state.pins || [],
+    compareSel: state.compareSel || [],
+    results: state.results || null,
+    resultsStale: !!state.resultsStale,
+    view: state.view || {}
+  };
+}
+
+function scheduleAutosave(){
+  try{
+    clearTimeout(_autosaveTimer);
+    _autosaveTimer = setTimeout(saveAutosaveNow, 900);
+  }catch(_e){}
+}
+function saveAutosaveNow(){
+  try{
+    const payload = buildSessionObject();
+    const wrap = { savedAt: new Date().toISOString(), payload };
+    localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(wrap));
+  }catch(_e){}
+}
+function clearAutosave(){
+  try{ localStorage.removeItem(AUTOSAVE_KEY); }catch(_e){}
+}
+
+function hydrateSession(obj, toastMsg){
+  if(!obj || !obj.targets || !obj.chronoFiles) throw new Error("Not a NodeLab session file");
+  // hydrate
+  state.units = obj.units || "moa";
+  // Restore prefs (new exports include obj.prefs)
+  if(obj.prefs){
+    if(obj.prefs.units) state.units = obj.prefs.units;
+    if(typeof obj.prefs.realityMode==='boolean') state.realityMode = obj.prefs.realityMode;
+    if(obj.prefs.realityWeights){
+      const lw = parseFloat(obj.prefs.realityWeights.lowN);
+      const fw = parseFloat(obj.prefs.realityWeights.flags);
+      if(isFinite(lw)) state.realityWeights.lowN = clamp(lw,0,0.6);
+      if(isFinite(fw)) state.realityWeights.flags = clamp(fw,0,1.2);
+    }
+    if(obj.prefs.view){
+      state.view = Object.assign(state.view||{}, obj.prefs.view);
+    }
+  }else{
+    // old exports
+    if(typeof obj.realityMode==='boolean') state.realityMode = obj.realityMode;
+    if(obj.realityWeights) state.realityWeights = obj.realityWeights;
+    if(obj.view){ state.view = Object.assign(state.view||{}, obj.view); }
+  }
+  state.sessionName = obj.sessionName || "";
+  state.shotmarkerFiles = (obj.shotmarkerFiles||[]).map(f=>({id:f.id||uid("sm"), name:f.name, targets:f.targets||[], info: f.info || null}));
+  state.chronoFiles = (obj.chronoFiles||[]).map(c=>({id:c.id||uid("ch"), name:c.name, shots:c.shots||[]}));
+  state.targets = obj.targets || [];
+  state.pairings = obj.pairings || {};
+  state.shooterNotes = obj.shooterNotes || {};
+  state.pins = Array.isArray(obj.pins) ? obj.pins : [];
+  state.compareSel = Array.isArray(obj.compareSel) ? obj.compareSel : [];
+  state.results = obj.results || null;
+  state.resultsStale = !!obj.resultsStale;
+  state.view = obj.view ? Object.assign(state.view||{}, obj.view) : (state.view || {});
+
+  // UI
+  els.sessionName.value = state.sessionName || els.sessionName.value;
+  setUnits(state.units);
+  render();
+  if(state.results && state.results.rows && state.results.rows.length){
+    renderResults();
+  }else if(Object.keys(state.pairings).length === state.targets.length && state.targets.length){
+    runAnalysis(); renderResults();
+  } else {
+    els.resultsArea.innerHTML = `<div class="muted small">Session loaded. Complete pairings (if needed), then run analysis.</div>`;
+  }
+  if(toastMsg) toast(toastMsg);
+  scheduleAutosave();
+}
+
+function maybeOfferAutosaveRestore(){
+  try{
+    const raw = localStorage.getItem(AUTOSAVE_KEY);
+    if(!raw) return;
+    const wrap = JSON.parse(raw);
+    const payload = wrap?.payload;
+    if(!payload || !payload.targets || !payload.chronoFiles) return;
+
+    // Don't nag if we already have a session loaded
+    if((state.targets && state.targets.length) || (state.chronoFiles && state.chronoFiles.length) || (state.shotmarkerFiles && state.shotmarkerFiles.length)) return;
+
+    const savedAt = wrap.savedAt ? new Date(wrap.savedAt) : null;
+    const nice = savedAt ? savedAt.toLocaleString() : "recently";
+    const tgt = payload.targets?.length || 0;
+    const ch = payload.chronoFiles?.length || 0;
+
+    showModal("Restore last session?", `
+      <div class="muted small">Found an autosaved session from <span class="hl">${escapeHtml(nice)}</span>.</div>
+      <div style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap">
+        <span class="badge">Targets: <span class="mono">${tgt}</span></span>
+        <span class="badge">Chrono files: <span class="mono">${ch}</span></span>
+        <span class="badge">Units: <span class="mono">${escapeHtml(payload.units||"moa")}</span></span>
+      </div>
+      <div class="muted small" style="margin-top:10px">Restore it, or discard and start fresh.</div>
+    `, [
+      { label:"Discard", kind:"danger", onClick: ()=>{ clearAutosave(); hideModal(); toast("Autosave discarded"); } },
+      { label:"Restore", kind:"primary", onClick: ()=>{ try{ hydrateSession(payload, "Autosave restored"); }catch(e){ toast("Restore failed: "+e.message); } hideModal(); } }
+    ]);
+  }catch(_e){}
+}
+
+function showResetModal(){
+  const tgt = state.targets?.length || 0;
+  const ch = state.chronoFiles?.length || 0;
+  const paired = Object.keys(state.pairings||{}).length || 0;
+  const hasResults = !!(state.results && state.results.rows && state.results.rows.length);
+  showModal("Reset session", `
+    <div class="muted small">This clears loaded files, pairings, and results (preferences stay).</div>
+    <div style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap">
+      <span class="badge">Targets: <span class="mono">${tgt}</span></span>
+      <span class="badge">Chrono files: <span class="mono">${ch}</span></span>
+      <span class="badge">Paired: <span class="mono">${paired}/${tgt||0}</span></span>
+      <span class="badge">Results: <span class="mono">${hasResults ? "Yes" : "No"}</span></span>
+    </div>
+    <div class="muted small" style="margin-top:10px">Tip: Export a .json first if you might want to come back later.</div>
+  `, [
+    { label:"Cancel", kind:"ghost", onClick: hideModal },
+    { label:"Export .json", kind:"", onClick: ()=>{ try{ exportSession(); }catch(e){ toast("Export failed: "+e.message); } } },
+    { label:"Reset", kind:"danger", onClick: ()=>{ doHardReset(); hideModal(); } }
+  ]);
+}
+
+function doHardReset(){
+  state.sessionName = "";
+  state.shotmarkerFiles = [];
+  state.chronoFiles = [];
+  state.targets = [];
+  state.pairings = {};
+  if(state.results){ state.resultsStale = true; }
+  state.results = null;
+  state.shooterNotes = {};
+  state.pins = [];
+  state.compareSel = [];
+  els.sessionName.value = "";
+  els.resultsArea.textContent = "No results yet.";
+  clearAutosave();
+  toast("Session reset");
+  render();
+}
+
+function buildHelpHTML(){
+  return `
+    <div class="muted small">NodeLab is a <b>local-only</b> workflow for ranking targets by <b>vertical dispersion</b> (your 1000y reality).</div>
+
+    <div style="margin-top:12px">
+      <b>Workflow</b>
+      <ol class="muted small" style="margin:8px 0 0 18px">
+        <li><span class="hl">ShotMarker CSV/TSV</span>: each file contains one or more targets.</li>
+        <li><span class="hl">Chrono files</span>: usually one per target string (but you can pair however you want).</li>
+        <li><span class="hl">Pairing</span>: map each target to a chrono file (1:1 is typical).</li>
+        <li><span class="hl">Run analysis</span>: results are ranked by vertical dispersion first.</li>
+      </ol>
+    </div>
+
+    <div style="margin-top:12px">
+      <b>How to read the table</b>
+      <ul class="muted small" style="margin:8px 0 0 18px">
+        <li><b>Vert</b> = primary ranking metric.</li>
+        <li><b>Conf</b> + diagnostics flags = "how much to trust this string" (low N, weird patterns, etc.).</li>
+        <li><b>Reality mode</b> applies harsher penalties for low-N and flagged strings.</li>
+      </ul>
+    </div>
+
+    <div style="margin-top:12px">
+      <b>Keyboard shortcuts</b>
+      <div class="muted small" style="margin-top:8px;display:flex;gap:10px;flex-wrap:wrap">
+        <span class="kbd">?</span> Help
+        <span class="kbd">E</span> Export .json
+        <span class="kbd">R</span> Run analysis
+        <span class="kbd">N</span> Reset session
+        <span class="kbd">Esc</span> Close dialogs
+      </div>
+      <div class="muted small" style="margin-top:8px">On touch devices: <b>press-and-hold</b> on a tooltip item to show its hint.</div>
+    </div>
+  `;
+}
+
+function showHelp(){
+  showModal("Help", buildHelpHTML(), [
+    { label:"Close", kind:"", onClick: hideModal }
+  ]);
+}
+
+function showModal(title, bodyHtml, actions){
+  const bd = document.getElementById("modalBackdrop");
+  const t = document.getElementById("modalTitle");
+  const b = document.getElementById("modalBody");
+  const f = document.getElementById("modalFooter");
+  const c = document.getElementById("modalClose");
+  if(!bd || !t || !b || !f || !c) return;
+
+  t.textContent = title || "Dialog";
+  b.innerHTML = bodyHtml || "";
+  f.innerHTML = "";
+
+  (actions||[]).forEach(a=>{
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "btn";
+    if(a.kind==="danger") btn.classList.add("danger");
+    else if(a.kind==="ghost") btn.classList.add("sm");
+    btn.textContent = a.label || "OK";
+    btn.addEventListener("click", ()=>{ try{ a.onClick && a.onClick(); }catch(e){ if(DEBUG) console.error(e); } });
+    f.appendChild(btn);
+  });
+
+  const onKey = (e)=>{
+    if(e.key==="Escape"){ hideModal(); }
+  };
+  bd._onKey = onKey;
+  document.addEventListener("keydown", onKey);
+
+  bd.classList.add("show");
+  bd.setAttribute("aria-hidden","false");
+
+  c.onclick = hideModal;
+  bd.onclick = (e)=>{ if(e.target===bd) hideModal(); };
+}
+
+function hideModal(){
+  const bd = document.getElementById("modalBackdrop");
+  if(!bd) return;
+  bd.classList.remove("show");
+  bd.setAttribute("aria-hidden","true");
+  if(bd._onKey){ document.removeEventListener("keydown", bd._onKey); bd._onKey=null; }
+}
+
+function importSession(file){
   const r = new FileReader();
   r.onload = ()=>{
     try{
       const obj = JSON.parse(r.result);
-      if(!obj || !obj.targets || !obj.chronoFiles) throw new Error("Not a NodeLab session file");
-      // hydrate
-      state.units = obj.units || "moa";
-      // Restore prefs (new exports include obj.prefs)
-      if(obj.prefs){
-        if(obj.prefs.units) state.units = obj.prefs.units;
-        if(typeof obj.prefs.realityMode==='boolean') state.realityMode = obj.prefs.realityMode;
-        if(obj.prefs.realityWeights){
-          const lw = parseFloat(obj.prefs.realityWeights.lowN);
-          const fw = parseFloat(obj.prefs.realityWeights.flags);
-          if(isFinite(lw)) state.realityWeights.lowN = clamp(lw,0,0.6);
-          if(isFinite(fw)) state.realityWeights.flags = clamp(fw,0,1.2);
-        }
-        if(obj.prefs.view){
-          const v = state.view || (state.view = { onlyActionable:false, onlyPinned:false, lowConfidence:false, showPairChecks:false, openRows: [] });
-          if(typeof obj.prefs.view.onlyActionable==='boolean') v.onlyActionable = obj.prefs.view.onlyActionable;
-          if(typeof obj.prefs.view.onlyPinned==='boolean') v.onlyPinned = obj.prefs.view.onlyPinned;
-          if(typeof obj.prefs.view.lowConfidence==='boolean') v.lowConfidence = obj.prefs.view.lowConfidence;
-          if(typeof obj.prefs.view.showPairChecks==='boolean') v.showPairChecks = obj.prefs.view.showPairChecks;
-          if(Array.isArray(obj.prefs.view.openRows)) v.openRows = obj.prefs.view.openRows.slice(0,50);
-        }
-      } else {
-        if(typeof obj.realityMode==='boolean') state.realityMode = obj.realityMode;
-        if(obj.realityWeights) state.realityWeights = obj.realityWeights;
-        if(obj.view){ state.view = Object.assign(state.view||{}, obj.view); }
-      }
-      state.sessionName = obj.sessionName || "";
-      state.shotmarkerFiles = (obj.shotmarkerFiles||[]).map(f=>({id:f.id||uid("sm"), name:f.name, targets:f.targets||[], info: f.info || null}));
-      state.chronoFiles = (obj.chronoFiles||[]).map(c=>({id:c.id||uid("ch"), name:c.name, shots:c.shots||[]}));
-      state.targets = obj.targets || [];
-      state.pairings = obj.pairings || {};
-      state.shooterNotes = obj.shooterNotes || {};
-      state.pins = Array.isArray(obj.pins) ? obj.pins : [];
-      state.compareSel = Array.isArray(obj.compareSel) ? obj.compareSel : [];
-      state.results = obj.results || null;
-      state.resultsStale = !!obj.resultsStale;
-      // UI
-      els.sessionName.value = state.sessionName || els.sessionName.value;
-      setUnits(state.units);
-      toast("Imported session .json");
-      render();
-      if(Object.keys(state.pairings).length === state.targets.length && state.targets.length){
-        runAnalysis(); renderResults();
-      } else {
-        els.resultsArea.innerHTML = `<div class="muted small">Imported data. Complete pairings (if needed), then run analysis.</div>`;
-      }
+      hydrateSession(obj, "Imported session .json");
     }catch(e){
-      console.error(e);
+      if(DEBUG) console.error(e);
       toast("Import failed: " + e.message);
     }
   };
+  r.onerror = ()=>toast("Import failed: could not read file");
   r.readAsText(file);
 }
 
@@ -3257,6 +3583,7 @@ function savePrefs(){
         openRows: Array.isArray(state.view && state.view.openRows) ? state.view.openRows.slice(0,50) : []
       }
     }));
+    scheduleAutosave();
   }catch(e){}
 }
 
@@ -3283,38 +3610,25 @@ function setRealityMode(on){
   render();
 }
 
-els.unitMoa.addEventListener("click", ()=>setUnits("moa"));
-els.unitMm.addEventListener("click", ()=>setUnits("mm"));
+if(els.unitMoa) els.unitMoa.addEventListener("click", ()=>setUnits("moa"));
+if(els.unitMm) els.unitMm.addEventListener("click", ()=>setUnits("mm"));
 
-els.btnRefresh.addEventListener("click", ()=>{
+if(els.btnRefresh) els.btnRefresh.addEventListener("click", ()=>{
   render();
   if(state.results) renderResults();
   toast("UI refreshed");
 });
 
-els.btnReset.addEventListener("click", ()=>{
-  if(!confirm("Reset session? This clears loaded files, pairings, and results.")) return;
-  state.sessionName = "";
-  state.shotmarkerFiles = [];
-  state.chronoFiles = [];
-  state.targets = [];
-  state.pairings = {};
-      if(state.results){ state.resultsStale = true; }
-  state.results = null;
-  els.sessionName.value = "";
-  els.resultsArea.textContent = "No results yet.";
-  toast("Session reset");
-  render();
-});
+if(els.btnReset) els.btnReset.addEventListener("click", ()=>{ showResetModal(); });
 
-els.btnExport.addEventListener("click", exportSession);
-els.importJson.addEventListener("change", (e)=>{
+if(els.btnExport) els.btnExport.addEventListener("click", exportSession);
+if(els.importJson) els.importJson.addEventListener("change", (e)=>{
   const f = e.target.files?.[0];
   if(f) importSession(f);
   e.target.value="";
 });
 
-els.sessionName.addEventListener("input", ()=>{
+if(els.sessionName) els.sessionName.addEventListener("input", ()=>{
   state.sessionName = els.sessionName.value;
 });
 
@@ -3384,7 +3698,7 @@ async function handleSMFiles(fileList){
       for(const t of targets) state.targets.push(t);
       toast(`Loaded ShotMarker: ${file.name} (${targets.length} targets)`);
     }catch(err){
-      console.error(err);
+      if(DEBUG) console.error(err);
       toast(`ShotMarker error: ${file.name} — ${err && err.message ? err.message : "parse failed"}`);
     }
   }
@@ -3418,7 +3732,7 @@ async function handleCHFiles(fileList){
         toast(`Loaded Chrono: ${file.name} (${shots.length} shots)`);
       }
     }catch(err){
-      console.error(err);
+      if(DEBUG) console.error(err);
       toast(`Chrono error: ${file.name} — ${err && err.message ? err.message : "parse failed"}`);
     }
   }
@@ -3431,15 +3745,15 @@ async function handleCHFiles(fileList){
   if(state.chronoFiles.length) scrollToCard("cardStep3");
 }
 
-els.smFiles.addEventListener("change", async (e)=>{
+if(els.smFiles) els.smFiles.addEventListener("change", async (e)=>{
   await handleSMFiles(e.target.files);
 });
 
-els.chFiles.addEventListener("change", async (e)=>{
+if(els.chFiles) els.chFiles.addEventListener("change", async (e)=>{
   await handleCHFiles(e.target.files);
 });
 
-els.btnRun.addEventListener("click", ()=>{
+if(els.btnRun) els.btnRun.addEventListener("click", ()=>{
   runAnalysis();
   renderResults();
   toast("Analysis complete");
@@ -3462,7 +3776,98 @@ function initUIActions(){
     });
   }
 
-  // Clear buttons
+  
+  // Help button
+  const btnHelp = document.getElementById("btnHelp");
+  if(btnHelp) btnHelp.addEventListener("click", ()=>showHelp());
+
+  // Keyboard shortcuts (ignore when typing)
+  document.addEventListener("keydown", (e)=>{
+    const t = e.target;
+    const tag = (t && t.tagName) ? t.tagName.toLowerCase() : "";
+    if(tag==="input" || tag==="textarea" || tag==="select" || (t && t.isContentEditable)) return;
+
+    const k = (e.key||"").toLowerCase();
+    if(k==="?" || (e.shiftKey && e.key==="/")){
+      e.preventDefault();
+      showHelp();
+      return;
+    }
+    if(k==="e"){
+      e.preventDefault();
+      exportSession();
+      return;
+    }
+    if(k==="n"){
+      e.preventDefault();
+      showResetModal();
+      return;
+    }
+    if(k==="r"){
+      // run if ready
+      e.preventDefault();
+      if(!els.btnRun.disabled){
+        runAnalysis();
+        renderResults();
+        toast("Analysis complete");
+        scrollToCard("cardStep5");
+      }else{
+        toast("Not ready: load files + complete pairings");
+      }
+      return;
+    }
+  });
+
+  // Touch-friendly tooltips: press-and-hold to reveal
+  try{
+    const hoverNone = window.matchMedia && window.matchMedia("(hover: none)").matches;
+    if(hoverNone){
+      let holdTimer = null;
+      let openEl = null;
+      let openedAt = 0;
+
+      const closeTip = ()=>{
+        if(openEl){ openEl.classList.remove("tipOpen"); openEl = null; }
+      };
+      const openTip = (el)=>{
+        closeTip();
+        if(!el) return;
+        openEl = el;
+        openedAt = Date.now();
+        el.classList.add("tipOpen");
+      };
+
+      document.addEventListener("pointerdown", (e)=>{
+        const el = e.target && e.target.closest ? e.target.closest(".toolt[data-tip]") : null;
+        if(!el) { closeTip(); return; }
+        clearTimeout(holdTimer);
+        holdTimer = setTimeout(()=>openTip(el), 380);
+      }, {passive:true});
+
+      ["pointerup","pointercancel","pointermove","scroll"].forEach(ev=>{
+        window.addEventListener(ev, ()=>{
+          clearTimeout(holdTimer);
+          // keep tooltip open after hold; user taps elsewhere to dismiss
+        }, {passive:true});
+      });
+
+      document.addEventListener("click", (e)=>{
+        // If a tooltip was just opened by hold, suppress the subsequent click action once
+        if(openEl && (Date.now()-openedAt) < 650){
+          const inside = e.target && e.target.closest ? e.target.closest(".toolt[data-tip]") : null;
+          if(inside===openEl){
+            e.preventDefault();
+            e.stopPropagation();
+            return;
+          }
+        }
+        const el = e.target && e.target.closest ? e.target.closest(".toolt[data-tip]") : null;
+        if(!el) closeTip();
+      }, true);
+    }
+  }catch(_e){}
+
+// Clear buttons
   const btnClearSM = document.getElementById("btnClearSM");
   if(btnClearSM) btnClearSM.addEventListener("click", ()=>{
     state.shotmarkerFiles = [];
@@ -3557,6 +3962,7 @@ function initUIActions(){
 // init
 render();
 initUIActions();
+maybeOfferAutosaveRestore();
 
 
 </script>
