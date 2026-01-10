@@ -7,6 +7,17 @@ Ranking is **vertical-first** (scored shots only); velocity is **context**.
 
 ---
 
+## [v2.6.4] — 2026-01-10
+
+### Improved
+- Packaging / offline reliability: removed a stray captured stylesheet reference that could break fully-standalone usage.
+
+### Repo
+- Added a GitHub Pages root landing (`index.html`) that forwards to `NodeLab_LATEST.html`.
+- Synced a versioned release build: `releases/NodeLab_v2_6_4_RELEASE.html`.
+
+---
+
 ## [v2.4.3] — 2025-12-23
 
 ### Added
