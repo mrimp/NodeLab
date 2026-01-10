@@ -29,13 +29,16 @@ NodeLab runs entirely in your browser.
 ## Screenshots
 
 ### Step 3: Pair targets ↔ chrono strings
-![Step 3 pairing](docs/screenshots/step3-pairing.png)
+![Step 3 pairing]
+<img width="2465" height="1025" alt="image" src="https://github.com/user-attachments/assets/fa23aae6-d384-478b-a2f6-4726a83de4e5" />
 
 ### Ranking view
-![Ranking view](docs/screenshots/ranking.png)
+![Ranking view]
+<img width="2497" height="910" alt="image" src="https://github.com/user-attachments/assets/e2f34c5d-8d96-4902-bab5-d7d473e03537" />
 
 ### Drilldown
-![Drilldown](docs/screenshots/drilldown.png)
+![Drilldown]
+<img width="2480" height="1450" alt="image" src="https://github.com/user-attachments/assets/55645ff7-ab00-4d8a-aa7d-52a0ed1484b9" />
 
 ## Issues / Support
 When opening an issue, include:
