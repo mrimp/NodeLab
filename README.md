@@ -31,6 +31,16 @@ NodeLab is a **standalone**, **single-file**, in-browser tool for pairing **Shot
 - Exports a JSON snapshot:
   `NodeLab_<SessionOrShotMarkerName>_<YYYY-MM-DD>_<HHMM>.json`
 
+## Screenshots
+These are representative UI screens. If you fork/customize the UI, update these.
+
+- Overview (placeholder):
+  ![Overview](docs/screenshots/overview.svg)
+- Step 3 pairing (placeholder):
+  ![Pairing](docs/screenshots/pairing.svg)
+- Results (placeholder):
+  ![Results](docs/screenshots/results.svg)
+
 ## Known limitations / browser notes
 Some behaviors are browser + security-model specific (especially under `file://`).
 See: **[docs/BROWSER_NOTES.md](docs/BROWSER_NOTES.md)**
