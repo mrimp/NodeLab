@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0b1020"/>
+      <stop offset="1" stop-color="#141a2e"/>
+    </linearGradient>
+  </defs>
+  <rect width="1600" height="900" fill="url(#g)"/>
+  <rect x="90" y="90" width="1420" height="720" rx="32" fill="#0f1530" stroke="#27305a" stroke-width="4"/>
+  <text x="140" y="200" fill="#e8ecff" font-family="ui-sans-serif, system-ui, -apple-system" font-size="64" font-weight="700">Results — Ranking & Drilldown</text>
+  <text x="140" y="280" fill="#b9c2ff" font-family="ui-sans-serif, system-ui, -apple-system" font-size="30">Vertical-first scoring, confidence cues, and diagnostics that matter at 1000y.</text>
+  <g opacity="0.9">
+    <rect x="140" y="340" width="1320" height="70" rx="18" fill="#121a3b" stroke="#2c376a"/>
+    <rect x="140" y="430" width="860" height="320" rx="24" fill="#0c1230" stroke="#2c376a"/>
+    <rect x="1020" y="430" width="440" height="320" rx="24" fill="#0c1230" stroke="#2c376a"/>
+  </g>
+  <text x="140" y="850" fill="#8ea0ff" font-family="ui-monospace, SFMono-Regular" font-size="20">Placeholder image — replace with real screenshots in docs/screenshots/</text>
+</svg>

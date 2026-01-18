@@ -1,5 +1,9 @@
 # NodeLab
 
+[![GitHub Release](https://img.shields.io/github/v/release/mrimp/NodeLab?display_name=tag&sort=semver)](https://github.com/mrimp/NodeLab/releases)
+[![License](https://img.shields.io/github/license/mrimp/NodeLab)](LICENSE)
+[![GitHub Pages](https://img.shields.io/github/deployments/mrimp/NodeLab/github-pages?label=GitHub%20Pages)](https://mrimp.github.io/NodeLab/)
+
 NodeLab is a **standalone**, **single-file**, in-browser tool for pairing **ShotMarker** targets with **chronograph strings** and running node-confidence analysis — **fully locally**.
 
 **No installs. No cloud. No accounts.** Your data stays on your machine.
@@ -7,6 +11,11 @@ NodeLab is a **standalone**, **single-file**, in-browser tool for pairing **Shot
 ## Run it
 - **Live (GitHub Pages):** https://mrimp.github.io/NodeLab/
 - **Offline:** download **`NodeLab_LATEST.html`** from this repo and double-click (Chrome/Edge recommended).
+
+## What’s new in the ship-quality build
+- **Offline hardening:** runtime blocks accidental network calls (fetch/XHR/WebSocket) and logs attempts.
+- **Offline Self-Test panel:** confirms no external URLs, network APIs are blocked, and storage is working.
+- **Portable mode:** export/import a single bundle that includes session data **plus** NodeLab settings.
 
 ## Quick start
 1. Load ShotMarker file(s)
@@ -20,25 +29,36 @@ NodeLab is a **standalone**, **single-file**, in-browser tool for pairing **Shot
 - Loads chronograph files and maps them to targets via Step 3 pairing
 - Produces ranked results with a confidence badge that **explains without dictating**
 - Exports a JSON snapshot:
-  `NodeLab_<ShotMarkerName>_<YYYY-MM-DD>_<HHMM>.json`
+  `NodeLab_<SessionOrShotMarkerName>_<YYYY-MM-DD>_<HHMM>.json`
+
+## Screenshots
+These are representative UI screens. If you fork/customize the UI, update these.
+
+- Overview (placeholder):
+  ![Overview](docs/screenshots/overview.svg)
+- Step 3 pairing (placeholder):
+  ![Pairing](docs/screenshots/pairing.svg)
+- Results (placeholder):
+  ![Results](docs/screenshots/results.svg)
+
+## Known limitations / browser notes
+Some behaviors are browser + security-model specific (especially under `file://`).
+See: **[docs/BROWSER_NOTES.md](docs/BROWSER_NOTES.md)**
+
+## Offline reliability
+Open **Offline reliability → Run Offline Self-Test**.
+It checks for external URLs, confirms network APIs are blocked, and verifies storage.
+
+## Portable mode (optional)
+Use **Offline reliability → Export portable bundle** to export:
+- Session data (targets, chrono strings, pairings, results)
+- NodeLab settings stored in `localStorage`
+
+Import it later with **Import portable bundle**.
 
 ## Privacy
 NodeLab runs entirely in your browser.
 **All parsing and analysis runs locally.**
-
-## Screenshots
-
-### Step 3: Pair targets ↔ chrono strings
-![Step 3 pairing]
-<img width="2465" height="1025" alt="image" src="https://github.com/user-attachments/assets/fa23aae6-d384-478b-a2f6-4726a83de4e5" />
-
-### Ranking view
-![Ranking view]
-<img width="2497" height="910" alt="image" src="https://github.com/user-attachments/assets/e2f34c5d-8d96-4902-bab5-d7d473e03537" />
-
-### Drilldown
-![Drilldown]
-<img width="2480" height="1450" alt="image" src="https://github.com/user-attachments/assets/55645ff7-ab00-4d8a-aa7d-52a0ed1484b9" />
 
 ## Issues / Support
 When opening an issue, include:
@@ -51,3 +71,7 @@ NodeLab exports analysis results as versioned JSON snapshots for use with compan
 
 The export contract is defined here:
 ➡️ [docs/SNAPSHOT_SPEC.md](docs/SNAPSHOT_SPEC.md)
+
+## Releases
+Semantic versioning, tagging flow, and a release checklist:
+➡️ [docs/RELEASE.md](docs/RELEASE.md)

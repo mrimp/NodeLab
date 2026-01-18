@@ -7,6 +7,17 @@ Ranking is **vertical-first** (scored shots only); velocity is **context**.
 
 ---
 
+## [v2.6.5] — 2026-01-18
+
+### Added
+- **Offline reliability** panel with an **Offline Self-Test** (external URL scan, storage check, and net-call counter).
+- **Offline hardening**: blocks accidental network calls (fetch/XHR/WebSocket) and logs attempts.
+- Optional **portable mode**: export/import a single JSON bundle that includes session data + key local settings.
+
+### Repo
+- Cleaned legacy release artifacts from the repo (use tags / GitHub Releases for history).
+- Added docs for browser notes, export spec, and release checklist.
+
 ## [v2.6.4] — 2026-01-10
 
 ### Improved
@@ -14,7 +25,6 @@ Ranking is **vertical-first** (scored shots only); velocity is **context**.
 
 ### Repo
 - Added a GitHub Pages root landing (`index.html`) that forwards to `NodeLab_LATEST.html`.
-- Synced a versioned release build: `releases/NodeLab_v2_6_4_RELEASE.html`.
 
 ---
 
